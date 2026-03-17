@@ -1,0 +1,402 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Calculator, 
+  FileText, 
+  Settings, 
+  DollarSign, 
+  Printer, 
+  Download, 
+  Plus, 
+  Trash2, 
+  Save, 
+  Building2,
+  TableProperties,
+  ListTodo,
+  X
+} from 'lucide-react';
+
+export default function App() {
+  // ================= STATE =================
+  const [activeTab, setActiveTab] = useState('presupuesto');
+  
+  // Settings
+  const [settings, setSettings] = useState({
+    currency: '$',
+    decimals: 0,
+    companyName: 'Constructora Solirian / Libertad65',
+    companyRut: '76.123.456-7',
+    companyAddress: 'Las Condes, Santiago',
+    logoUrl: 'https://cdn-icons-png.flaticon.com/512/2942/2942933.png'
+  });
+
+  // Project Info
+  const [projectInfo, setProjectInfo] = useState({
+    name: 'Galpón y Oficinas Inalco (Proyecto Base)',
+    client: 'Inversiones Inalco S.A.',
+    location: 'Ruta 5 Norte, Santiago',
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  // Budget Data (Initial data based on your CSV)
+  const [budgetItems, setBudgetItems] = useState([
+    { id: 'c1', type: 'chapter', num: '1.-', name: 'OBRAS PREVIAS', unit: '', qty: 0, price: 0 },
+    { id: 'i1', type: 'item', num: '1.1', name: 'Terreno, limpieza y despeje', unit: 'gl', qty: 1, price: 150000 },
+    { id: 'i2', type: 'item', num: '1.2.1', name: 'Demolición radier existente', unit: 'm3', qty: 191.14, price: 15000 },
+    { id: 'c2', type: 'chapter', num: '2.-', name: 'INSTALACIÓN DE FAENAS', unit: '', qty: 0, price: 0 },
+    { id: 'i3', type: 'item', num: '2.1', name: 'Contenedor oficina', unit: 'mes', qty: 3, price: 139000 },
+  ]);
+
+  // Totals Configuration
+  const [totalsConfig, setTotalsConfig] = useState({
+    useFixedOverhead: false, // true = use % fijo, false = use value from Gastos Generales tab
+    fixedOverheadPercent: 15,
+    utilityPercent: 12,
+    vatPercent: 19
+  });
+
+  // Takeoffs (Cubicaciones)
+  const [takeoffs, setTakeoffs] = useState({
+    'i2': [{ id: 't1', desc: 'Radier sector A', largo: 20.5, ancho: 37, alto: 0.18, factor: 1.4, total: 191.142 }]
+  });
+
+  // APUs (Precios Unitarios)
+  const [apus, setApus] = useState({
+    'i1': [
+      { id: 'a1', type: 'Mano de Obra', desc: 'Jornal', unit: 'hd', qty: 4, price: 25000, total: 100000 },
+      { id: 'a2', type: 'Materiales', desc: 'Herramientas menores', unit: 'gl', qty: 1, price: 50000, total: 50000 }
+    ]
+  });
+
+  // Overhead Items (Gastos Generales)
+  const [overheadItems, setOverheadItems] = useState([
+    { id: 'gg1', num: '1.1', name: 'Profesional Administrador', unit: 'mes', qty: 3, price: 1800000 },
+    { id: 'gg2', num: '1.2', name: 'Prevencionista', unit: 'mes', qty: 3, price: 1100000 },
+  ]);
+
+  // Modals State
+  const [activeModal, setActiveModal] = useState(null); // 'takeoff' | 'apu' | null
+  const [selectedItemId, setSelectedItemId] = useState(null);
+
+  // ================= CALCULATIONS =================
+  const formatNumber = (num) => {
+    if (!num && num !== 0) return '';
+    return Number(num).toLocaleString('es-CL', {
+      minimumFractionDigits: settings.decimals,
+      maximumFractionDigits: settings.decimals
+    });
+  };
+
+  const directCost = useMemo(() => {
+    return budgetItems.reduce((acc, item) => {
+      if (item.type === 'item') {
+        return acc + (Number(item.qty) * Number(item.price));
+      }
+      return acc;
+    }, 0);
+  }, [budgetItems]);
+
+  const overheadTotal = useMemo(() => {
+    return overheadItems.reduce((acc, item) => acc + (Number(item.qty) * Number(item.price)), 0);
+  }, [overheadItems]);
+
+  const calculatedOverhead = useMemo(() => {
+    if (totalsConfig.useFixedOverhead) {
+      return directCost * (totalsConfig.fixedOverheadPercent / 100);
+    }
+    return overheadTotal;
+  }, [directCost, overheadTotal, totalsConfig]);
+
+  const utilityTotal = directCost * (totalsConfig.utilityPercent / 100);
+  const netTotal = directCost + calculatedOverhead + utilityTotal;
+  const vatTotal = netTotal * (totalsConfig.vatPercent / 100);
+  const grandTotal = netTotal + vatTotal;
+
+  // ================= HANDLERS =================
+  const handleBudgetChange = (id, field, value) => {
+    setBudgetItems(items => items.map(item => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const addBudgetItem = (type) => {
+    const newId = Date.now().toString();
+    setBudgetItems([...budgetItems, { id: newId, type, num: '', name: '', unit: '', qty: 0, price: 0 }]);
+  };
+
+  const removeBudgetItem = (id) => {
+    setBudgetItems(items => items.filter(item => item.id !== id));
+  };
+
+  const exportToCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Item,Descripción,Unidad,Cantidad,Precio Unitario,Total\n";
+    
+    budgetItems.forEach(item => {
+      const total = item.type === 'item' ? item.qty * item.price : '';
+      csvContent += `${item.num},"${item.name}",${item.unit},${item.qty},${item.price},${total}\n`;
+    });
+    
+    csvContent += `\n,,,,,Costo Directo,${directCost}\n`;
+    csvContent += `,,,,,Gastos Generales,${calculatedOverhead}\n`;
+    csvContent += `,,,,,Utilidad,${utilityTotal}\n`;
+    csvContent += `,,,,,Total Neto,${netTotal}\n`;
+    csvContent += `,,,,,IVA,${vatTotal}\n`;
+    csvContent += `,,,,,Total General,${grandTotal}\n`;
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Presupuesto_${projectInfo.name}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // ================= COMPONENTS =================
+  
+  const TabButton = ({ id, icon: Icon, label }) => (
+    <button
+      onClick={() => setActiveTab(id)}
+      className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-medium transition-colors ${
+        activeTab === id 
+          ? 'border-blue-600 text-blue-600' 
+          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+      }`}
+    >
+      <Icon size={18} />
+      <span className="hidden sm:inline">{label}</span>
+    </button>
+  );
+
+  // --- Modals ---
+  const TakeoffModal = () => {
+    const [rows, setRows] = useState(takeoffs[selectedItemId] || []);
+    const item = budgetItems.find(i => i.id === selectedItemId);
+
+    const addRow = () => setRows([...rows, { id: Date.now().toString(), desc: '', largo: 0, ancho: 0, alto: 0, factor: 1, total: 0 }]);
+    
+    const updateRow = (id, field, value) => {
+      setRows(rows.map(r => {
+        if (r.id === id) {
+          const newRow = { ...r, [field]: Number(value) || value };
+          if (['largo', 'ancho', 'alto', 'factor'].includes(field)) {
+            // Calculate total: multiply non-zero dimensions
+            const l = newRow.largo || 1;
+            const a = newRow.ancho || 1;
+            const h = newRow.alto || 1;
+            const f = newRow.factor || 1;
+            // If all are 0 or empty, total is 0. If some are present, multiply them.
+            newRow.total = (newRow.largo||newRow.ancho||newRow.alto) ? (l * a * h * f) : 0;
+          }
+          return newRow;
+        }
+        return r;
+      }));
+    };
+
+    const save = () => {
+      const sum = rows.reduce((acc, r) => acc + r.total, 0);
+      setTakeoffs({ ...takeoffs, [selectedItemId]: rows });
+      handleBudgetChange(selectedItemId, 'qty', sum);
+      setActiveModal(null);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-lg">
+            <h3 className="font-bold text-lg text-slate-800">Cubicación: {item?.name}</h3>
+            <button onClick={() => setActiveModal(null)} className="text-gray-500 hover:text-red-500"><X size={24} /></button>
+          </div>
+          <div className="p-4 overflow-y-auto flex-grow">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                  <tr>
+                    <th className="p-2">Descripción</th>
+                    <th className="p-2 w-20">Largo</th>
+                    <th className="p-2 w-20">Ancho</th>
+                    <th className="p-2 w-20">Alto</th>
+                    <th className="p-2 w-20">Factor</th>
+                    <th className="p-2 w-24">Total</th>
+                    <th className="p-2 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id} className="border-b">
+                      <td className="p-2"><input type="text" className="w-full border rounded p-1" value={r.desc} onChange={e => updateRow(r.id, 'desc', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.largo} onChange={e => updateRow(r.id, 'largo', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.ancho} onChange={e => updateRow(r.id, 'ancho', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.alto} onChange={e => updateRow(r.id, 'alto', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.factor} onChange={e => updateRow(r.id, 'factor', e.target.value)} /></td>
+                      <td className="p-2 font-bold text-right">{r.total.toFixed(2)}</td>
+                      <td className="p-2"><button onClick={() => setRows(rows.filter(x => x.id !== r.id))} className="text-red-500"><Trash2 size={16} /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button onClick={addRow} className="mt-4 flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium">
+              <Plus size={16} className="mr-1" /> Agregar Fila
+            </button>
+          </div>
+          <div className="p-4 border-t flex justify-end space-x-2 bg-slate-50 rounded-b-lg">
+            <div className="mr-auto flex items-center font-bold text-lg">
+              Total Cubicado: <span className="ml-2 text-blue-700">{rows.reduce((acc, r) => acc + r.total, 0).toFixed(2)}</span>
+            </div>
+            <button onClick={() => setActiveModal(null)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">Cancelar</button>
+            <button onClick={save} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"><Save size={16} className="mr-2"/> Guardar en Presupuesto</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ApuModal = () => {
+    const [rows, setRows] = useState(apus[selectedItemId] || []);
+    const item = budgetItems.find(i => i.id === selectedItemId);
+
+    const addRow = () => setRows([...rows, { id: Date.now().toString(), type: 'Materiales', desc: '', unit: 'un', qty: 1, price: 0, total: 0 }]);
+    
+    const updateRow = (id, field, value) => {
+      setRows(rows.map(r => {
+        if (r.id === id) {
+          const newRow = { ...r, [field]: (field === 'desc' || field === 'type' || field === 'unit') ? value : Number(value) };
+          if (field === 'qty' || field === 'price') {
+            newRow.total = (newRow.qty || 0) * (newRow.price || 0);
+          }
+          return newRow;
+        }
+        return r;
+      }));
+    };
+
+    const save = () => {
+      const sum = rows.reduce((acc, r) => acc + r.total, 0);
+      setApus({ ...apus, [selectedItemId]: rows });
+      handleBudgetChange(selectedItemId, 'price', sum);
+      setActiveModal(null);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-lg">
+            <h3 className="font-bold text-lg text-slate-800">APU: {item?.name}</h3>
+            <button onClick={() => setActiveModal(null)} className="text-gray-500 hover:text-red-500"><X size={24} /></button>
+          </div>
+          <div className="p-4 overflow-y-auto flex-grow">
+             <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                  <tr>
+                    <th className="p-2 w-32">Tipo</th>
+                    <th className="p-2">Descripción Recurso</th>
+                    <th className="p-2 w-16">Unid.</th>
+                    <th className="p-2 w-24">Rendimiento</th>
+                    <th className="p-2 w-32">Precio Unit.</th>
+                    <th className="p-2 w-32">Total</th>
+                    <th className="p-2 w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(r => (
+                    <tr key={r.id} className="border-b">
+                      <td className="p-2">
+                        <select className="w-full border rounded p-1" value={r.type} onChange={e => updateRow(r.id, 'type', e.target.value)}>
+                          <option>Materiales</option>
+                          <option>Mano de Obra</option>
+                          <option>Equipos/Herram.</option>
+                          <option>Subcontrato</option>
+                        </select>
+                      </td>
+                      <td className="p-2"><input type="text" className="w-full border rounded p-1" value={r.desc} onChange={e => updateRow(r.id, 'desc', e.target.value)} /></td>
+                      <td className="p-2"><input type="text" className="w-full border rounded p-1" value={r.unit} onChange={e => updateRow(r.id, 'unit', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.qty} onChange={e => updateRow(r.id, 'qty', e.target.value)} /></td>
+                      <td className="p-2"><input type="number" className="w-full border rounded p-1" value={r.price} onChange={e => updateRow(r.id, 'price', e.target.value)} /></td>
+                      <td className="p-2 font-bold text-right">{settings.currency} {formatNumber(r.total)}</td>
+                      <td className="p-2"><button onClick={() => setRows(rows.filter(x => x.id !== r.id))} className="text-red-500"><Trash2 size={16} /></button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button onClick={addRow} className="mt-4 flex items-center text-amber-600 hover:text-amber-800 text-sm font-medium">
+              <Plus size={16} className="mr-1" /> Agregar Recurso
+            </button>
+          </div>
+          <div className="p-4 border-t flex justify-end space-x-2 bg-slate-50 rounded-b-lg">
+             <div className="mr-auto flex items-center font-bold text-lg">
+              Precio Unitario Total: <span className="ml-2 text-amber-600">{settings.currency} {formatNumber(rows.reduce((acc, r) => acc + r.total, 0))}</span>
+            </div>
+            <button onClick={() => setActiveModal(null)} className="px-4 py-2 border rounded text-gray-600 hover:bg-gray-100">Cancelar</button>
+            <button onClick={save} className="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600 flex items-center"><Save size={16} className="mr-2"/> Guardar APU</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans print:bg-white">
+      {/* HEADER */}
+      <header className="bg-white shadow-sm print:hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <Building2 className="text-blue-600 w-8 h-8" />
+            <h1 className="text-xl font-bold text-slate-800 tracking-tight">Presupuesto<span className="text-blue-600">Pro</span></h1>
+          </div>
+          <div className="flex space-x-2">
+            <button onClick={() => window.print()} className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Imprimir PDF">
+              <Printer size={20} />
+            </button>
+            <button onClick={exportToCSV} className="p-2 text-slate-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors" title="Exportar Excel">
+              <Download size={20} />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* NAVIGATION */}
+      <nav className="bg-white border-b print:hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto hide-scrollbar">
+          <TabButton id="presupuesto" icon={FileText} label="Presupuesto" />
+          <TabButton id="cubicaciones" icon={TableProperties} label="Cubicaciones" />
+          <TabButton id="apus" icon={Calculator} label="APUs" />
+          <TabButton id="gastos" icon={ListTodo} label="Gastos Generales" />
+          <TabButton id="config" icon={Settings} label="Configuración" />
+        </div>
+      </nav>
+
+      {/* MAIN CONTENT */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:py-0">
+        
+        {/* ================= TAB: PRESUPUESTO ================= */}
+        {activeTab === 'presupuesto' && (
+          <div className="space-y-6">
+            {/* Document Header (Printable) */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200 print:shadow-none print:border-none print:p-0">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800 uppercase mb-4">Presupuesto de Obra</h2>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+                    <div className="font-semibold text-slate-500">OBRA:</div>
+                    <div><input type="text" className="border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full bg-transparent" value={projectInfo.name} onChange={e => setProjectInfo({...projectInfo, name: e.target.value})} /></div>
+                    
+                    <div className="font-semibold text-slate-500">MANDANTE:</div>
+                    <div><input type="text" className="border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full bg-transparent" value={projectInfo.client} onChange={e => setProjectInfo({...projectInfo, client: e.target.value})} /></div>
+                    
+                    <div className="font-semibold text-slate-500">UBICACIÓN:</div>
+                    <div><input type="text" className="border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full bg-transparent" value={projectInfo.location} onChange={e => setProjectInfo({...projectInfo, location: e.target.value})} /></div>
+                    
+                    <div className="font-semibold text-slate-500">FECHA:</div>
+                    <div><input type="date" className="border-b border-transparent hover:border-slate-300 focus:border-blue-500 outline-none w-full bg-transparent" value={projectInfo.date} onChange={e => setProjectInfo({...projectInfo, date: e.target.value})} /></div>
+                  </div>
+                </div>
+                {settings.logoUrl && (
+                  <img src={settings.logoUrl} alt="Logo" className="h-16 object-contain" />
+                )}
+              </div>
+
+             

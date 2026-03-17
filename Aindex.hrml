@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PresupuestoPro — Construcción Civil Chile</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ff:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --navy:#1e3a5f;
+  --navy-lt:#e8eef7;
+  --amber:#b45309;
+  --amber-lt:#fffbeb;
+  --green:#166534;
+  --green-lt:#f0fdf4;
+  --red:#991b1b;
+  --red-lt:#fef2f2;
+  --purple:#6b21a8;
+  --purple-lt:#fdf4ff;
+  --border:#e2e8f0;
+  --border2:#cbd5e1;
+  --bg:#ffffff;
+  --bg2:#f8fafc;
+  --bg3:#f1f5f9;
+  --txt:#0f172a;
+  --txt2:#64748b;
+  --txt3:#94a3b8;
+}
+body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3);min-height:100vh}
+.app{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.hdr{background:var(--bg);border-bottom:2px solid var(--navy);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;background:var(--navy);border-radius:6px;display:flex;align-items:center;justify-content:center}
+.logo svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round}
+.brand-txt .name{font-size:16px;font-weight:600;color:var(--txt);letter-spacing:-0.5px}
+.brand-txt .name span{color:var(--navy)}
+.brand-txt .sub{font-size:10px;color:var(--txt2);font-family:var(--mono);letter-spacing:0.3px}
+.hdr-actions{display:flex;gap:6px}
+.ico-btn{height:32px;padding:0 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);cursor:pointer;display:flex;align-items:center;gap:5px;color:var(--txt2);font-size:11px;font-family:var(--ff);font-weight:500}
+.ico-btn:hover{background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.ico-btn svg{width:14px;height:14px}
+
+/* TABS */
+.tabs{background:var(--bg);border-bottom:1px solid var(--border);display:flex;padding:0 18px;gap:0;overflow-x:auto}
+.tab{padding:10px 14px;font-size:11px;font-weight:500;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;transition:color 0.15s}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+.tab:hover:not(.on){color:var(--txt);background:var(--bg2)}
+
+/* MAIN */
+.content{flex:1;padding:16px 20px}
+.pnl{display:none}.pnl.on{display:block}
+
+/* PROJECT BAR */
+.proj-bar{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:2fr 2fr 2fr 1fr;gap:14px}
+.pf label{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:3px}
+.pf input{font-size:12px;color:var(--txt);background:transparent;border:none;border-bottom:1px solid var(--border);width:100%;outline:none;padding:3px 0;font-family:var(--ff)}
+.pf input:focus{border-bottom-color:var(--navy)}
+
+/* BUDGET TABLE */
+.tbl-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.tbl-hdr{display:grid;grid-template-columns:68px 1fr 55px 82px 96px 96px 90px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 10px}
+.tbl-hdr span{padding:8px 4px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.6px}
+.tbl-hdr .r{text-align:right}
+.row{display:grid;grid-template-columns:68px 1fr 55px 82px 96px 96px 90px;border-bottom:1px solid var(--border);padding:0 10px;transition:background 0.1s}
+.row:last-child{border-bottom:none}
+.row:hover{background:#fafbfc}
+.row.ch{background:linear-gradient(to right,rgba(30,58,95,0.04),transparent);border-bottom:1px solid var(--border2)}
+.row input{font-family:var(--ff);font-size:12px;color:var(--txt);background:transparent;border:none;outline:none;width:100%;padding:7px 4px}
+.row .r{text-align:right;font-family:var(--mono)}
+.row .tot{padding:7px 4px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.row .acts{display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:3px 0}
+.ch-name{font-size:12px;font-weight:600;color:var(--navy);padding:7px 4px;letter-spacing:0.1px}
+.ch-tot{padding:7px 4px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--navy)}
+.tbl-add{padding:9px 12px;display:flex;gap:7px;border-top:1px solid var(--border);background:var(--bg2)}
+
+/* BUTTONS */
+.bs{font-family:var(--ff);font-size:10px;font-weight:500;padding:4px 9px;border-radius:5px;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--txt2)}
+.bs:hover{background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.bs.del{border:none;font-size:16px;line-height:1;padding:2px 6px;color:var(--txt3);background:none}
+.bs.del:hover{color:var(--red);background:var(--red-lt)}
+.bs.apu{font-size:9px;padding:3px 6px;background:var(--amber-lt);color:var(--amber);border-color:var(--amber)}
+.bs.apu:hover{background:#fef3c7}
+.bs.cub{font-size:9px;padding:3px 6px;background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.bs.cub:hover{background:#dbeafe}
+
+/* TOTALS */
+.tot-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.totals-left{display:flex;flex-direction:column;gap:6px}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.tr:last-child{border:none}
+.tr.sep{border-bottom:2px solid var(--border2)}
+.tl{font-size:12px;color:var(--txt2)}
+.tv{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.tr.grand{background:var(--navy-lt);padding:9px 12px;border-radius:7px;margin-top:4px;border:none}
+.tr.grand .tl{font-weight:600;color:var(--navy);font-size:13px}
+.tr.grand .tv{font-size:16px;font-weight:600;color:var(--navy)}
+.cfg-side{display:flex;flex-direction:column;gap:8px}
+.cfg-lbl{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.cr{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cr label{font-size:11px;color:var(--txt2)}
+.cr input[type=number]{font-family:var(--mono);width:60px;font-size:12px;border:1px solid var(--border2);border-radius:4px;padding:3px 6px;background:var(--bg);color:var(--txt);text-align:right}
+.cr input[type=number]:focus{outline:none;border-color:var(--navy)}
+.cr-pct{font-size:11px;color:var(--txt2)}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:200;overflow-y:auto;padding:20px}
+.modal{background:var(--bg);border-radius:12px;width:100%;max-width:720px;margin:0 auto;border:1px solid var(--border);box-shadow:0 20px 40px rgba(0,0,0,0.15);overflow:hidden}
+.mh{padding:13px 16px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+.mh h3{font-size:13px;font-weight:600;color:var(--txt)}
+.mh .mh-badge{font-size:10px;font-family:var(--mono);color:var(--txt2);background:var(--border);padding:2px 6px;border-radius:4px;margin-left:8px}
+.mb{padding:14px;overflow-y:auto;max-height:440px}
+.mf{padding:11px 14px;background:var(--bg2);border-top:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+.btn-p{font-family:var(--ff);font-size:12px;font-weight:500;padding:7px 14px;border-radius:6px;cursor:pointer;background:var(--amber);color:#fff;border:none}
+.btn-p:hover{opacity:0.88}
+.btn-p.blue{background:var(--navy)}
+.btn-s{font-family:var(--ff);font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;background:var(--bg);color:var(--txt2);border:1px solid var(--border2)}
+.btn-s:hover{background:var(--bg2)}
+.price-badge{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--amber)}
+
+/* APU SECTIONS */
+.sec-wrap{margin-bottom:12px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:5px;margin-bottom:4px}
+.s-mo{background:#eff6ff;color:#1d4ed8}
+.s-mat{background:#f0fdf4;color:#15803d}
+.s-eq{background:#fffbeb;color:#92400e}
+.s-sub{background:#fdf4ff;color:#7e22ce}
+.sec-hdr .s-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.sec-hdr .s-tot{font-family:var(--mono);font-size:12px;font-weight:600}
+.at{width:100%;border-collapse:collapse}
+.at th{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.5px;padding:5px 5px;border-bottom:1px solid var(--border2);text-align:left;background:var(--bg2)}
+.at th.r{text-align:right}
+.at td{padding:3px 4px;border-bottom:1px solid var(--border)}
+.at tr:last-child td{border-bottom:none}
+.at input,.at select{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px 3px}
+.at input:focus,.at select:focus{border-bottom-color:var(--navy)}
+.at .r{text-align:right;font-family:var(--mono)}
+.at .mn{font-family:var(--mono);text-align:right;font-size:11px;color:var(--txt)}
+
+/* LEYES SOCIALES */
+.ls-box{background:rgba(180,83,9,0.04);border:1px solid rgba(180,83,9,0.2);border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:12px 14px;margin-top:10px}
+.ls-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.ls-title{font-size:10px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px}
+.ls-toggle{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2)}
+.ls-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+.ls-item{display:flex;flex-direction:column;gap:2px}
+.ls-item label{font-size:9px;color:var(--txt2);font-weight:500}
+.ls-item input{font-family:var(--mono);font-size:11px;border:1px solid var(--border2);border-radius:4px;padding:3px 5px;background:var(--bg);color:var(--txt);text-align:right;width:100%}
+.ls-item input:focus{outline:none;border-color:var(--amber)}
+.ls-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid rgba(180,83,9,0.15)}
+.ls-row span{font-size:11px;color:var(--txt2)}
+.ls-row strong{font-family:var(--mono);font-size:12px;color:var(--amber)}
+.ls-subtotal{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(180,83,9,0.08);border-radius:5px;margin-top:5px}
+.ls-subtotal span{font-size:11px;font-weight:600;color:var(--amber)}
+.ls-subtotal strong{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--amber)}
+
+/* APU SUMMARY */
+.apu-sum{background:var(--navy-lt);border-radius:7px;padding:10px 12px;margin-top:10px;border:1px solid rgba(30,58,95,0.15)}
+.apu-sum-title{font-size:10px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(30,58,95,0.1)}
+.sr:last-child{border:none;margin-top:5px;padding-top:7px;border-top:1px solid rgba(30,58,95,0.2)}
+.sr span{font-size:11px;color:var(--txt2)}
+.sr strong{font-family:var(--mono);font-size:11px;color:var(--txt)}
+.sr.g span{font-weight:600;font-size:13px;color:var(--navy)}
+.sr.g strong{font-size:15px;font-weight:600;color:var(--navy)}
+
+/* GG TABLE */
+.gg-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.gg-wrap table{width:100%;border-collapse:collapse}
+.gg-wrap th{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.5px;padding:8px 9px;background:var(--bg2);border-bottom:1px solid var(--border2);text-align:left}
+.gg-wrap th.r{text-align:right}
+.gg-wrap td{padding:4px 7px;border-bottom:1px solid var(--border)}
+.gg-wrap tr:last-child td{border-bottom:none}
+.gg-wrap input{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px}
+.gg-wrap input:focus{border-bottom-color:var(--navy)}
+.gg-wrap .r{text-align:right;font-family:var(--mono)}
+.gg-wrap .mn{font-family:var(--mono);text-align:right;font-size:11px}
+.gg-foot{padding:8px 12px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.gg-total{font-family:var(--mono);font-weight:600;font-size:14px;color:var(--navy)}
+
+/* HELPER */
+.placeholder{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:30px;text-align:center;color:var(--txt2);font-size:13px}
+.placeholder strong{color:var(--txt)}
+
+@media print{
+  .hdr,.tabs,.hdr-actions,.acts,.tbl-add,.cfg-side,.gg-foot{display:none!important}
+  .content{padding:0}
+  .tot-card{display:block}
+  body{background:#fff}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="brand-txt">
+      <div class="name">Presupuesto<span>Pro</span></div>
+      <div class="sub">Construcción Civil · Chile · v2.0</div>
+    </div>
+  </div>
+  <div class="hdr-actions">
+    <button class="ico-btn" onclick="window.print()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Imprimir
+    </button>
+    <button class="ico-btn" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar CSV
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="sw('pres',this)">Presupuesto</div>
+  <div class="tab" onclick="sw('cubicaciones',this)">Cubicaciones</div>
+  <div class="tab" onclick="sw('apus',this)">APUs</div>
+  <div class="tab" onclick="sw('gastos',this)">Gastos Generales</div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- PRESUPUESTO -->
+  <div id="p-pres" class="pnl on">
+    <div class="proj-bar">
+      <div class="pf"><label>Obra / Proyecto</label><input id="pObra" value="Galpón y Oficinas Inalco"/></div>
+      <div class="pf"><label>Mandante</label><input id="pMandante" value="Inversiones Inalco S.A."/></div>
+      <div class="pf"><label>Ubicación</label><input id="pUbicacion" value="Ruta 5 Norte, Santiago"/></div>
+      <div class="pf"><label>Fecha</label><input id="pFecha" type="date"/></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span>Ítem</span><span>Descripción</span><span>Unid.</span>
+        <span class="r">Cantidad</span><span class="r">P. Unitario</span>
+        <span class="r">Total</span><span></span>
+      </div>
+      <div id="brows"></div>
+      <div class="tbl-add">
+        <button class="bs" onclick="addR('ch')">+ Capítulo</button>
+        <button class="bs" onclick="addR('it')">+ Partida</button>
+      </div>
+    </div>
+
+    <div class="tot-card">
+      <div class="totals-left" id="totals"></div>
+      <div class="cfg-side">
+        <div class="cfg-lbl">Configuración de totales</div>
+        <div class="cr"><label>% Gastos Generales</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pGG" value="15" oninput="rc()"><span class="cr-pct">%</span></div></div>
+        <div class="cr"><label>% Utilidad</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pUtil" value="12" oninput="rc()"><span class="cr-pct">%</span></div></div>
+        <div class="cr"><label>% IVA</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pIVA" value="19" oninput="rc()"><span class="cr-pct">%</span></div></div>
+        <div class="cr" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          <label>GG fijo (% indicado arriba)</label>
+          <input type="checkbox" id="ggFijo" onchange="rc()">
+        </div>
+        <p style="font-size:10px;color:var(--txt3);margin-top:2px">Si desmarcas, usa el total de la pestaña Gastos Generales</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUBICACIONES -->
+  <div id="p-cubicaciones" class="pnl">
+    <div class="placeholder">Haz clic en <strong>Cub</strong> junto a cualquier partida para abrir su cubicación dimensional.</div>
+  </div>
+
+  <!-- APUS -->
+  <div id="p-apus" class="pnl">
+    <div class="placeholder">Haz clic en <strong>APU</strong> junto a cualquier partida para editar su análisis de precio unitario con leyes sociales.</div>
+  </div>
+
+  <!-- GASTOS GENERALES -->
+  <div id="p-gastos" class="pnl">
+    <div class="gg-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:60px">Ítem</th>
+          <th>Descripción</th>
+          <th style="width:55px">Unid.</th>
+          <th class="r" style="width:72px">Cant.</th>
+          <th class="r" style="width:110px">P. Unitario</th>
+          <th class="r" style="width:110px">Total</th>
+          <th style="width:36px"></th>
+        </tr></thead>
+        <tbody id="gg-body"></tbody>
+      </table>
+      <div class="gg-foot">
+        <button class="bs" onclick="addGG()">+ Agregar ítem</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;color:var(--txt2)">Total Gastos Generales:</span>
+          <span class="gg-total" id="gg-tot">$ 0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- MODAL OVERLAY -->
+<div class="ov" id="ov">
+  <div id="mc"></div>
+</div>
+
+</div><!-- /app -->
+
+<script>
+var items=[
+  {id:'c1',t:'ch',num:'1.-',name:'OBRAS PREVIAS',unit:'',qty:0,price:0},
+  {id:'i1',t:'it',num:'1.1',name:'Terreno, limpieza y despeje',unit:'gl',qty:1,price:150000},
+  {id:'i2',t:'it',num:'1.2',name:'Demolición radier existente',unit:'m3',qty:191.14,price:15000},
+  {id:'c2',t:'ch',num:'2.-',name:'INSTALACIÓN DE FAENAS',unit:'',qty:0,price:0},
+  {id:'i3',t:'it',num:'2.1',name:'Contenedor oficina',unit:'mes',qty:3,price:139000},
+  {id:'i4',t:'it',num:'2.2',name:'Baños provisorios',unit:'mes',qty:3,price:85000},
+  {id:'c3',t:'ch',num:'3.-',name:'ESTRUCTURA',unit:'',qty:0,price:0},
+  {id:'i5',t:'it',num:'3.1',name:'Hormigón radier H-25 e=12cm',unit:'m3',qty:42,price:180000},
+  {id:'i6',t:'it',num:'3.2',name:'Enfierradura fy=420 MPa',unit:'kg',qty:3200,price:1250},
+  {id:'i7',t:'it',num:'3.3',name:'Moldaje para radier',unit:'m2',qty:210,price:8500},
+  {id:'c4',t:'ch',num:'4.-',name:'TERMINACIONES',unit:'',qty:0,price:0},
+  {id:'i8',t:'it',num:'4.1',name:'Pavimento interior epóxico',unit:'m2',qty:850,price:18500},
+  {id:'i9',t:'it',num:'4.2',name:'Pintura cielos y muros',unit:'m2',qty:1200,price:4200},
+];
+var ggItems=[
+  {id:'g1',num:'1.1',name:'Profesional Administrador de Obra',unit:'mes',qty:3,price:1800000},
+  {id:'g2',num:'1.2',name:'Prevencionista de Riesgos (CPHS)',unit:'mes',qty:3,price:1100000},
+  {id:'g3',num:'1.3',name:'Bodeguero',unit:'mes',qty:3,price:650000},
+  {id:'g4',num:'1.4',name:'Arriendo instalación faenas',unit:'mes',qty:3,price:350000},
+  {id:'g5',num:'1.5',name:'Servicios básicos (agua, luz)',unit:'mes',qty:3,price:120000},
+];
+var apuData={};
+var tofData={};
+var ic=500;
+function gid(){return 'x'+(ic++);}
+
+function N(v){return parseFloat(v)||0;}
+function fmt(n){return Math.round(n).toLocaleString('es-CL');}
+function esc(s){return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+function chTotals(){
+  var ct={},cur=null;
+  items.forEach(function(it){
+    if(it.t==='ch'){cur=it.id;ct[it.id]=0;}
+    else if(cur){ct[cur]+=N(it.qty)*N(it.price);}
+  });
+  return ct;
+}
+
+function rb(){
+  var ct=chTotals();
+  document.getElementById('brows').innerHTML=items.map(function(it){
+    if(it.t==='ch'){
+      return '<div class="row ch">'
+        +'<input style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--navy)" value="'+esc(it.num)+'" oninput="ui(\''+it.id+'\',\'num\',this.value)"/>'
+        +'<div class="ch-name"><input style="font-weight:600;font-size:12px;color:var(--navy);border:none;outline:none;background:transparent;width:100%;padding:7px 0" value="'+esc(it.name)+'" oninput="ui(\''+it.id+'\',\'name\',this.value)"/></div>'
+        +'<span></span><span></span><span></span>'
+        +'<span class="ch-tot">$ '+fmt(ct[it.id]||0)+'</span>'
+        +'<span class="acts"><button class="bs del" onclick="di(\''+it.id+'\')">×</button></span>'
+        +'</div>';
+    }
+    var tot=N(it.qty)*N(it.price);
+    var ha=apuData[it.id]?true:false;
+    var hc=tofData[it.id]&&tofData[it.id].length>0?true:false;
+    return '<div class="row">'
+      +'<input style="font-family:var(--mono);font-size:10px" value="'+esc(it.num)+'" oninput="ui(\''+it.id+'\',\'num\',this.value)"/>'
+      +'<input value="'+esc(it.name)+'" oninput="ui(\''+it.id+'\',\'name\',this.value)"/>'
+      +'<input style="width:48px" value="'+esc(it.unit)+'" oninput="ui(\''+it.id+'\',\'unit\',this.value)"/>'
+      +'<input class="r" type="number" value="'+N(it.qty)+'" oninput="ui(\''+it.id+'\',\'qty\',this.value)"/>'
+      +'<input class="r" type="number" value="'+N(it.price)+'" oninput="ui(\''+it.id+'\',\'price\',this.value)"/>'
+      +'<span class="tot">$ '+fmt(tot)+'</span>'
+      +'<span class="acts">'
+      +'<button class="bs cub" title="Cubicación" onclick="openTof(\''+it.id+'\')">'+(hc?'✓Cub':'Cub')+'</button>'
+      +'<button class="bs apu" title="Análisis de Precio Unitario" onclick="openApu(\''+it.id+'\')">'+(ha?'✓APU':'APU')+'</button>'
+      +'<button class="bs del" onclick="di(\''+it.id+'\')">×</button>'
+      +'</span>'
+      +'</div>';
+  }).join('');
+  rc();
+}
+
+function ui(id,f,v){
+  items=items.map(function(it){
+    return it.id===id?Object.assign({},it,(function(){var o={};o[f]=['qty','price'].includes(f)?N(v):v;return o;})()) : it;
+  });
+  rb();
+}
+function addR(t){items.push({id:gid(),t:t,num:'',name:'',unit:'',qty:0,price:0});rb();}
+function di(id){if(!confirm('¿Eliminar esta fila?'))return;items=items.filter(function(it){return it.id!==id;});rb();}
+
+function rc(){
+  var dc=items.reduce(function(a,it){return it.t==='it'?a+N(it.qty)*N(it.price):a;},0);
+  var ggF=document.getElementById('ggFijo').checked;
+  var pGG=N(document.getElementById('pGG').value);
+  var pU=N(document.getElementById('pUtil').value);
+  var pIVA=N(document.getElementById('pIVA').value);
+  var ggV=ggF?dc*(pGG/100):ggItems.reduce(function(a,it){return a+N(it.qty)*N(it.price);},0);
+  var util=dc*(pU/100);
+  var net=dc+ggV+util;
+  var iva=net*(pIVA/100);
+  var grand=net+iva;
+  var html=''
+    +'<div class="tr"><span class="tl">Costo Directo</span><span class="tv">$ '+fmt(dc)+'</span></div>'
+    +'<div class="tr"><span class="tl">Gastos Generales'+(ggF?' ('+pGG+'%)':'')+'</span><span class="tv">$ '+fmt(ggV)+'</span></div>'
+    +'<div class="tr"><span class="tl">Utilidad ('+pU+'%)</span><span class="tv">$ '+fmt(util)+'</span></div>'
+    +'<div class="tr sep"><span class="tl" style="font-weight:500">Total Neto</span><span class="tv" style="font-weight:500">$ '+fmt(net)+'</span></div>'
+    +'<div class="tr"><span class="tl">IVA ('+pIVA+'%)</span><span class="tv">$ '+fmt(iva)+'</span></div>'
+    +'<div class="tr grand"><span class="tl">Total General</span><span class="tv">$ '+fmt(grand)+'</span></div>';
+  document.getElementById('totals').innerHTML=html;
+  updateGGTot();
+}
+
+// ---- GG ----
+function renderGG(){
+  document.getElementById('gg-body').innerHTML=ggItems.map(function(it){
+    var t=N(it.qty)*N(it.price);
+    return '<tr>'
+      +'<td><input style="width:50px;font-family:var(--mono);font-size:10px" value="'+esc(it.num)+'" oninput="ugg(\''+it.id+'\',\'num\',this.value)"/></td>'
+      +'<td><input value="'+esc(it.name)+'" oninput="ugg(\''+it.id+'\',\'name\',this.value)"/></td>'
+      +'<td><input style="width:48px" value="'+esc(it.unit)+'" oninput="ugg(\''+it.id+'\',\'unit\',this.value)"/></td>'
+      +'<td><input class="r" type="number" value="'+it.qty+'" oninput="ugg(\''+it.id+'\',\'qty\',this.value)"/></td>'
+      +'<td><input class="r" type="number" value="'+it.price+'" oninput="ugg(\''+it.id+'\',\'price\',this.value)"/></td>'
+      +'<td class="mn">$ '+fmt(t)+'</td>'
+      +'<td><button class="bs del" onclick="dgg(\''+it.id+'\')">×</button></td>'
+    +'</tr>';
+  }).join('');
+  updateGGTot();
+}
+function ugg(id,f,v){ggItems=ggItems.map(function(it){return it.id===id?Object.assign({},it,(function(){var o={};o[f]=['qty','price'].includes(f)?N(v):v;return o;})()) : it;});renderGG();rc();}
+function addGG(){ggItems.push({id:gid(),num:'',name:'',unit:'mes',qty:1,price:0});renderGG();rc();}
+function dgg(id){ggItems=ggItems.filter(function(it){return it.id!==id;});renderGG();rc();}
+function updateGGTot(){
+  var t=ggItems.reduce(function(a,it){return a+N(it.qty)*N(it.price);},0);
+  var el=document.getElementById('gg-tot');
+  if(el)el.textContent='$ '+fmt(t);
+}
+
+// ---- APU ----
+var STYPES=['Mano de Obra','Materiales','Equipos/Herram.','Subcontratos'];
+var SCLS={'Mano de Obra':'s-mo','Materiales':'s-mat','Equipos/Herram.':'s-eq','Subcontratos':'s-sub'};
+// Leyes sociales Chile (cargo empleador típico)
+function defLS(){return {afp:11.44,salud:7.0,seguro:2.4,mutual:0.93,sis:1.49,sanna:0.0,otros:0,on:true};}
+
+function getApu(id){
+  if(!apuData[id])apuData[id]={secs:STYPES.map(function(t){return {type:t,rows:[]};},),ls:defLS()};
+  return apuData[id];
+}
+
+function openApu(itemId){
+  var item=items.find(function(it){return it.id===itemId;});
+  var apu=getApu(itemId);
+  document.getElementById('ov').style.display='block';
+
+  function moTot(){return apu.secs[0].rows.reduce(function(a,r){return a+N(r.qty)*N(r.price);},0);}
+  function lsPct(){var ls=apu.ls;return N(ls.afp)+N(ls.salud)+N(ls.seguro)+N(ls.mutual)+N(ls.sis)+N(ls.sanna)+N(ls.otros);}
+  function lsTot(){return apu.ls.on?moTot()*(lsPct()/100):0;}
+  function secTot(si){return apu.secs[si].rows.reduce(function(a,r){return a+N(r.qty)*N(r.price);},0);}
+  function grandTot(){return apu.secs.reduce(function(a,s,si){return a+secTot(si);},0)+lsTot();}
+
+  function render(){
+    var ls=apu.ls;var pct=lsPct();var mo=moTot();var lt=lsTot();var gt=grandTot();
+
+    var secsH=apu.secs.map(function(sec,si){
+      var st=secTot(si);var cls=SCLS[sec.type]||'s-mat';
+      return '<div class="sec-wrap">'
+        +'<div class="sec-hdr '+cls+'"><span class="s-label">'+sec.type+'</span><span class="s-tot">$ '+fmt(st)+'</span></div>'
+        +'<table class="at"><thead><tr>'
+        +'<th>Recurso / Descripción</th>'
+        +'<th style="width:48px">Unid.</th>'
+        +'<th class="r" style="width:80px">Rendim.</th>'
+        +'<th class="r" style="width:90px">P. Unit.</th>'
+        +'<th class="r" style="width:90px">Subtotal</th>'
+        +'<th style="width:30px"></th>'
+        +'</tr></thead><tbody>'
+        +sec.rows.map(function(r,ri){
+          var t=N(r.qty)*N(r.price);
+          return '<tr>'
+            +'<td><input value="'+esc(r.desc)+'" oninput="aur('+si+','+ri+',\'desc\',this.value)"/></td>'
+            +'<td><input style="width:42px" value="'+esc(r.unit)+'" oninput="aur('+si+','+ri+',\'unit\',this.value)"/></td>'
+            +'<td><input class="r" type="number" value="'+N(r.qty)+'" oninput="aur('+si+','+ri+',\'qty\',this.value)"/></td>'
+            +'<td><input class="r" type="number" value="'+N(r.price)+'" oninput="aur('+si+','+ri+',\'price\',this.value)"/></td>'
+            +'<td class="mn">$ '+fmt(t)+'</td>'
+            +'<td><button class="bs del" onclick="adr('+si+','+ri+')">×</button></td>'
+          +'</tr>';
+        }).join('')
+        +'</tbody></table>'
+        +'<button class="bs" style="margin:4px 0 0 3px;font-size:9px" onclick="aar('+si+')">+ Recurso</button>'
+        +'</div>';
+    }).join('');
+
+    /* subtotales por sección para el resumen */
+    var matTot=secTot(1);var moTotVal=secTot(0);var eqTot=secTot(2);var subTot=secTot(3);
+
+    var lsH='<div class="ls-box">'
+      +'<div class="ls-head">'
+      +'<div class="ls-title">Leyes Sociales — Costo empleador sobre MO</div>'
+      +'<label class="ls-toggle"><span>Aplicar</span><input type="checkbox" '+(ls.on?'checked':'')+' onchange="als(this.checked)"/></label>'
+      +'</div>'
+      +'<div class="ls-grid">'
+      +'<div class="ls-item"><label>AFP empleador (%)</label><input type="number" step="0.01" value="'+ls.afp+'" oninput="uls(\'afp\',this.value)"/></div>'
+      +'<div class="ls-item"><label>Salud (FONASA/ISAPRE) (%)</label><input type="number" step="0.01" value="'+ls.salud+'" oninput="uls(\'salud\',this.value)"/></div>'
+      +'<div class="ls-item"><label>Seguro Cesantía emp. (%)</label><input type="number" step="0.01" value="'+ls.seguro+'" oninput="uls(\'seguro\',this.value)"/></div>'
+      +'<div class="ls-item"><label>Mutual accidentes (%)</label><input type="number" step="0.01" value="'+ls.mutual+'" oninput="uls(\'mutual\',this.value)"/></div>'
+      +'<div class="ls-item"><label>SIS (Seguro Invalidez) (%)</label><input type="number" step="0.01" value="'+ls.sis+'" oninput="uls(\'sis\',this.value)"/></div>'
+      +'<div class="ls-item"><label>SANNA / Otros (%)</label><input type="number" step="0.01" value="'+ls.sanna+'" oninput="uls(\'sanna\',this.value)"/></div>'
+      +'</div>'
+      +'<div class="ls-row"><span>Total % leyes sociales</span><strong>'+pct.toFixed(2)+'%</strong></div>'
+      +'<div class="ls-subtotal"><span>MO $ '+fmt(mo)+' × '+pct.toFixed(2)+'% =</span><strong>$ '+fmt(lt)+'</strong></div>'
+      +'</div>';
+
+    var sumH='<div class="apu-sum">'
+      +'<div class="apu-sum-title">Resumen APU — '+esc(item.unit)+'</div>'
+      +'<div class="sr"><span>Mano de Obra</span><strong>$ '+fmt(moTotVal)+'</strong></div>'
+      +'<div class="sr"><span>Materiales</span><strong>$ '+fmt(matTot)+'</strong></div>'
+      +'<div class="sr"><span>Equipos / Herramientas</span><strong>$ '+fmt(eqTot)+'</strong></div>'
+      +'<div class="sr"><span>Subcontratos</span><strong>$ '+fmt(subTot)+'</strong></div>'
+      +'<div class="sr"><span>Leyes Sociales sobre MO</span><strong>$ '+fmt(lt)+'</strong></div>'
+      +'<div class="sr g"><span>Precio Unitario Total</span><strong>$ '+fmt(gt)+'</strong></div>'
+      +'</div>';
+
+    document.getElementById('mc').innerHTML=''
+      +'<div class="modal">'
+      +'<div class="mh"><div style="display:flex;align-items:center"><h3>APU — '+esc(item.name)+'</h3><span class="mh-badge">'+esc(item.unit)+'</span></div>'
+      +'<button class="btn-s" onclick="closeMod()">✕ Cerrar</button></div>'
+      +'<div class="mb">'+secsH+lsH+sumH+'</div>'
+      +'<div class="mf">'
+      +'<span class="price-badge">P. Unit.: $ '+fmt(gt)+' / '+esc(item.unit)+'</span>'
+      +'<div style="display:flex;gap:7px">'
+      +'<button class="btn-s" onclick="closeMod()">Cancelar</button>'
+      +'<button class="btn-p" onclick="saveApu(\''+itemId+'\','+gt+')">Guardar APU</button>'
+      +'</div></div>'
+      +'</div>';
+  }
+
+  window.aur=function(si,ri,f,v){apu.secs[si].rows[ri][f]=['qty','price'].includes(f)?N(v):v;render();};
+  window.aar=function(si){apu.secs[si].rows.push({desc:'',unit:'gl',qty:1,price:0});render();};
+  window.adr=function(si,ri){apu.secs[si].rows.splice(ri,1);render();};
+  window.uls=function(f,v){apu.ls[f]=N(v);render();};
+  window.als=function(v){apu.ls.on=v;render();};
+  render();
+}
+
+function saveApu(itemId,gt){
+  items=items.map(function(it){return it.id===itemId?Object.assign({},it,{price:Math.round(gt)}):it;});
+  closeMod();rb();
+}
+
+// ---- CUBICACIÓN (TAKEOFF) ----
+function openTof(itemId){
+  var item=items.find(function(it){return it.id===itemId;});
+  if(!tofData[itemId])tofData[itemId]=[];
+  var rows=tofData[itemId];
+  document.getElementById('ov').style.display='block';
+
+  function calcTot(){
+    var t=0;
+    rows.forEach(function(r){
+      var v=(N(r.l)>0||N(r.w)>0)?N(r.l)*N(r.w)*(N(r.h)||1)*(N(r.f)||1):0;
+      r.tot=v;t+=v;
+    });
+    return t;
+  }
+
+  function render(){
+    var tot=calcTot();
+    document.getElementById('mc').innerHTML=''
+      +'<div class="modal">'
+      +'<div class="mh"><h3>Cubicación — '+esc(item.name)+'</h3><button class="btn-s" onclick="closeMod()">✕ Cerrar</button></div>'
+      +'<div class="mb"><table class="at" style="width:100%"><thead><tr>'
+      +'<th>Descripción</th>'
+      +'<th class="r" style="width:70px">Largo</th>'
+      +'<th class="r" style="width:70px">Ancho</th>'
+      +'<th class="r" style="width:60px">Alto</th>'
+      +'<th class="r" style="width:60px">Factor</th>'
+      +'<th class="r" style="width:80px">Total</th>'
+      +'<th style="width:30px"></th>'
+      +'</tr></thead><tbody>'
+      +rows.map(function(r,i){
+        return '<tr>'
+          +'<td><input value="'+esc(r.desc)+'" oninput="tur('+i+',\'desc\',this.value)"/></td>'
+          +'<td><input class="r" type="number" value="'+(r.l||0)+'" oninput="tur('+i+',\'l\',this.value)"/></td>'
+          +'<td><input class="r" type="number" value="'+(r.w||0)+'" oninput="tur('+i+',\'w\',this.value)"/></td>'
+          +'<td><input class="r" type="number" value="'+(r.h||1)+'" oninput="tur('+i+',\'h\',this.value)"/></td>'
+          +'<td><input class="r" type="number" value="'+(r.f||1)+'" oninput="tur('+i+',\'f\',this.value)"/></td>'
+          +'<td class="mn">'+(r.tot||0).toFixed(3)+'</td>'
+          +'<td><button class="bs del" onclick="tdr('+i+')">×</button></td>'
+        +'</tr>';
+      }).join('')
+      +'</tbody></table>'
+      +'<button class="bs" style="margin:8px 0 0" onclick="tar()">+ Agregar fila</button>'
+      +'</div>'
+      +'<div class="mf">'
+      +'<span class="price-badge" style="color:var(--navy)">Total: '+tot.toFixed(3)+' '+esc(item.unit)+'</span>'
+      +'<div style="display:flex;gap:7px">'
+      +'<button class="btn-s" onclick="closeMod()">Cancelar</button>'
+      +'<button class="btn-p blue" onclick="saveTof(\''+itemId+'\','+tot+')">Guardar en Presupuesto</button>'
+      +'</div></div>'
+      +'</div>';
+  }
+
+  window.tur=function(i,f,v){rows[i][f]=v;render();};
+  window.tar=function(){rows.push({desc:'',l:0,w:0,h:1,f:1,tot:0});render();};
+  window.tdr=function(i){rows.splice(i,1);render();};
+  render();
+}
+
+function saveTof(itemId,tot){
+  items=items.map(function(it){return it.id===itemId?Object.assign({},it,{qty:parseFloat(tot.toFixed(3))}):it;});
+  closeMod();rb();
+}
+
+function closeMod(){
+  document.getElementById('ov').style.display='none';
+  document.getElementById('mc').innerHTML='';
+}
+
+function sw(id,el){
+  document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.getElementById('p-'+id).classList.add('on');
+  el.classList.add('on');
+}
+
+function exportCSV(){
+  var csv='Ítem,Descripción,Unidad,Cantidad,P.Unit.,Total\n';
+  items.forEach(function(it){
+    var t=it.t==='it'?N(it.qty)*N(it.price):'';
+    csv+='"'+esc(it.num)+'","'+esc(it.name)+'","'+esc(it.unit)+'",'+N(it.qty)+','+N(it.price)+','+t+'\n';
+  });
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);
+  a.download='Presupuesto_Inalco.csv';a.click();
+}
+
+// INIT
+document.getElementById('pFecha').value=new Date().toISOString().split('T')[0];
+rb();
+renderGG();
+</script>
+</body>
+</html>

@@ -1,0 +1,872 @@
+import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Trash2, X, Settings, PlusCircle, Box, Image as ImageIcon, 
+  Save, Sparkles, Loader2, Calculator, Edit3, ChevronRight,
+  Info, Briefcase
+} from 'lucide-react';
+
+const apiKey = ""; 
+
+const loadHtml2Pdf = () => {
+  return new Promise((resolve) => {
+    if (window.html2pdf) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = resolve;
+    document.head.appendChild(script);
+  });
+};
+
+const numeroALetras = (num, moneda) => {
+  const Unidades = (n) => ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'][n];
+  const Decenas = (n) => {
+    if (n<10) return Unidades(n);
+    if (n<20) return ['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIEZ Y SEIS','DIEZ Y SIETE','DIEZ Y OCHO','DIEZ Y NUEVE'][n-10];
+    const d = Math.floor(n/10); const u = n%10;
+    const t = ['','','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'][d];
+    return u === 0 ? t : (d === 2 ? 'VEINTI' : t + ' Y ') + Unidades(u);
+  };
+  const Centenas = (n) => {
+    if (n === 100) return 'CIEN';
+    if (n < 100) return Decenas(n);
+    const c = Math.floor(n/100); const r = n%100;
+    const t = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'][c];
+    return r === 0 ? t : t + ' ' + Decenas(r);
+  };
+  const miles = (n) => {
+    if (n === 1000) return 'MIL';
+    if (n < 1000) return Centenas(n);
+    const m = Math.floor(n/1000); const r = n%1000;
+    const t = m === 1 ? 'MIL' : Centenas(m) + ' MIL';
+    return r === 0 ? t : t + ' ' + Centenas(r);
+  };
+  const millones = (n) => {
+    if (n < 1000000) return miles(n);
+    const m = Math.floor(n/1000000); const r = n%1000000;
+    const t = m === 1 ? 'UN MILLÓN' : Centenas(m) + ' MILLONES';
+    return r === 0 ? t : t + ' ' + miles(r);
+  };
+  const entero = Math.floor(num);
+  const centavos = Math.round((num - entero) * 100);
+  const texto = millones(entero);
+  const sufijo = moneda === 'CLP' ? 'PESOS' : 'DÓLARES';
+  return `SON: ${texto} ${sufijo} ${centavos > 0 ? `CON ${centavos}/100` : ''}.-`.toUpperCase();
+};
+
+export default function App() {
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [logo, setLogo] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  
+  const [config, setConfig] = useState({
+    moneda: 'CLP',
+    paridad: 950,
+    decimalesCant: 2,
+    decimalesPrecio: 0,
+    decimalesSubtotal: 0,
+    decimalesTotal: 0
+  });
+
+  const [project, setProject] = useState({ 
+    obra: 'INSTALACIÓN FOTOVOLTAICA 10KW - PROYECTO SOLIRIAN', 
+    mandante: 'SOLIRIAN SPA - CHILE', 
+    ubicacion: 'AV. PROVIDENCIA 1234, SANTIAGO', 
+    fecha: new Date().toISOString().split('T')[0],
+    profesional: 'CONSTRUCTORA SOLIRIAN & LIBERTAD65',
+    contacto: '+56 9 1234 5678 | contacto@profesional.cl | Santiago, Chile'
+  });
+
+  const [items, setItems] = useState([
+    { id: '1', type: 'capitulo', nombre: 'OBRAS PREVIAS', unidad: '', cant: 0, precio: 0 },
+    { id: '2', type: 'partida', nombre: 'Instalación de faenas', unidad: 'GL', cant: 1, precio: 550000 },
+  ]);
+
+  const [globalGG, setGlobalGG] = useState(15);
+  const [estudioGG, setEstudioGG] = useState([
+    { desc: 'Arriendos y Equipos', monto: 0 },
+    { desc: 'Leyes Sociales', monto: 0 },
+    { desc: 'Seguros y Boletas', monto: 0 }
+  ]);
+  const [globalUtil, setGlobalUtil] = useState(10);
+  const [cubicaciones, setCubicaciones] = useState({});
+
+  const itemsWithIndex = useMemo(() => {
+    let capCount = 0;
+    let parCount = 0;
+    return items.map((item) => {
+      if (item.type === 'capitulo') {
+        capCount++;
+        parCount = 0;
+        return { ...item, indexLabel: capCount.toString().padStart(2, '0') };
+      } else {
+        parCount++;
+        return { ...item, indexLabel: `${capCount.toString().padStart(2, '0')}.${parCount}` };
+      }
+    });
+  }, [items]);
+
+  const fmt = (val, type = 'precio') => {
+    let dec = 0;
+    if (type === 'cant') dec = config.decimalesCant;
+    else if (type === 'precio') dec = config.decimalesPrecio;
+    else if (type === 'subtotal') dec = config.decimalesSubtotal;
+    else if (type === 'total') dec = config.decimalesTotal;
+
+    return Number(val || 0).toLocaleString('de-DE', { 
+      minimumFractionDigits: dec, 
+      maximumFractionDigits: dec 
+    });
+  };
+
+  const totales = useMemo(() => {
+    let directo = 0;
+    items.forEach(i => { if (i.type === 'partida') directo += Number(i.cant) * Number(i.precio); });
+    const ggTotal = directo * (Number(globalGG) / 100);
+    const utilTotal = directo * (Number(globalUtil) / 100);
+    const neto = directo + ggTotal + utilTotal;
+    const iva = neto * 0.19;
+    return { directo, ggTotal, utilTotal, neto, iva, total: neto + iva };
+  }, [items, globalGG, globalUtil]);
+
+  const addItem = (index, type) => {
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      nombre: type === 'capitulo' ? 'NUEVO CAPÍTULO' : 'Nueva partida de obra',
+      unidad: type === 'partida' ? 'UN' : '',
+      cant: type === 'partida' ? 1 : 0,
+      precio: 0
+    };
+    const newArr = [...items];
+    newArr.splice(index + 1, 0, newItem);
+    setItems(newArr);
+  };
+
+  const updateItem = (id, field, val) => {
+    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+  };
+
+  const handleFocus = (e) => {
+    const val = e.target.value.toLowerCase();
+    const defaults = ["nueva partida", "nuevo capítulo", "nombre de la obra", "mandante", "ubicación", "constructora"];
+    if (defaults.some(d => val.includes(d))) {
+      e.target.value = "";
+    }
+  };
+
+  // --- MODAL ESTUDIO GG ---
+  const EstudioGGModal = () => {
+    const totalEstudio = estudioGG.reduce((acc, curr) => acc + Number(curr.monto), 0);
+    const percCalculado = totales.directo > 0 ? (totalEstudio / totales.directo) * 100 : 0;
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/95 z-[1000] flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-slate-800 p-4 text-white flex justify-between">
+            <h3 className="text-sm font-bold uppercase">Estudio de Gastos Generales</h3>
+            <button onClick={() => setActiveModal(null)}><X /></button>
+          </div>
+          <div className="p-4 space-y-3">
+            {estudioGG.map((item, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input className="flex-1 p-2 border-b outline-none text-[11px] uppercase" value={item.desc} onChange={e=>{
+                  const n = [...estudioGG]; n[idx].desc = e.target.value; setEstudioGG(n);
+                }}/>
+                <input type="number" className="w-24 p-2 border-b outline-none text-[11px] text-right" value={item.monto} onChange={e=>{
+                  const n = [...estudioGG]; n[idx].monto = e.target.value; setEstudioGG(n);
+                }}/>
+                <button onClick={() => setEstudioGG(estudioGG.filter((_, i) => i !== idx))}><Trash2 size={12} className="text-red-400"/></button>
+              </div>
+            ))}
+            <button onClick={() => setEstudioGG([...estudioGG, { desc: '', monto: 0 }])} className="text-[10px] font-black text-blue-600">+ AÑADIR CONCEPTO</button>
+          </div>
+          <div className="p-4 bg-slate-50 border-t">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-black uppercase text-slate-500">Monto Total GG:</span>
+              <span className="text-sm font-bold">{fmt(totalEstudio, 'total')}</span>
+            </div>
+            <div className="flex justify-between items-center bg-blue-100 p-2 rounded">
+              <span className="text-[10px] font-black text-blue-800 uppercase">Porcentaje Sugerido:</span>
+              <span className="text-sm font-black text-blue-900">{percCalculado.toFixed(2)}%</span>
+            </div>
+            <button onClick={() => { setGlobalGG(percCalculado.toFixed(2)); setActiveModal(null); }} className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-black text-xs uppercase">Aplicar Porcentaje</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CubicarModal = ({ id }) => {
+    const partida = items.find(i => i.id === id);
+    const [rows, setRows] = useState(cubicaciones[id] || [{ d: 'Eje A-B', n: 1, l: 0, a: 0, h: 0 }]);
+    const total = rows.reduce((acc, r) => acc + (Number(r.n) * (Number(r.l) || 1) * (Number(r.a) || 1) * (Number(r.h) || 1)), 0);
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/95 z-[1000] flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-slate-800 p-4 text-white flex justify-between">
+            <h3 className="text-sm font-bold uppercase">Cubicación: {partida.nombre}</h3>
+            <button onClick={() => setActiveModal(null)}><X /></button>
+          </div>
+          <div className="p-4 overflow-x-auto">
+            <table className="w-full text-[11px] border-collapse">
+              <thead>
+                <tr className="bg-slate-100 uppercase font-black">
+                  <th className="p-2 text-left">Eje/Ubicación</th>
+                  <th className="p-2">Cant</th><th className="p-2">Largo</th><th className="p-2">Ancho</th><th className="p-2">Alto</th><th className="p-2 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b">
+                    <td><input className="w-full p-2 outline-none uppercase" value={r.d} onChange={e=>{const n=[...rows]; n[i].d=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.n} onChange={e=>{const n=[...rows]; n[i].n=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.l} onChange={e=>{const n=[...rows]; n[i].l=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.a} onChange={e=>{const n=[...rows]; n[i].a=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.h} onChange={e=>{const n=[...rows]; n[i].h=e.target.value; setRows(n)}}/></td>
+                    <td className="text-right font-bold">{fmt(Number(r.n) * (Number(r.l)||1) * (Number(r.a)||1) * (Number(r.h)||1), 'cant')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-4 bg-slate-50 flex justify-between items-center border-t">
+            <p className="text-lg font-black italic">TOTAL: {fmt(total, 'cant')} {partida.unidad}</p>
+            <button onClick={()=>{setCubicaciones({...cubicaciones, [id]:rows}); updateItem(id, 'cant', total); setActiveModal(null)}} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-black text-xs uppercase">Confirmar Cubicaje</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center w-full pb-10">
+      
+      {/* TOOLBAR */}
+      <div className="no-print w-full bg-slate-900 text-white p-3 sticky top-0 z-[100] flex justify-between items-center shadow-lg">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setActiveModal('config')} className="p-2 bg-slate-800 rounded-lg text-blue-400 border border-blue-400/30 hover:bg-slate-700 transition-colors"><Settings size={20}/></button>
+          <div className="text-[10px] space-x-3">
+             <span className="font-black text-blue-400">{config.moneda}</span>
+             {config.moneda === 'USD' && <span className="text-slate-400">T/C: ${config.paridad}</span>}
+          </div>
+        </div>
+        <button id="btn-export" onClick={async () => {
+          const btn = document.getElementById('btn-export'); btn.innerText = "PREPARANDO...";
+          await loadHtml2Pdf();
+          const opt = { margin: 5, filename: `Presupuesto_${project.obra}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+          await window.html2pdf().from(document.getElementById('presupuesto-pdf')).set(opt).save();
+          btn.innerText = "EXPORTAR PDF";
+        }} className="bg-blue-600 px-8 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-700 active:scale-95 transition-all">Exportar PDF</button>
+      </div>
+
+      <div id="presupuesto-pdf" className="w-full max-w-[210mm] bg-white min-h-screen shadow-xl p-8 md:p-14 mt-4 relative overflow-hidden">
+        
+        {/* HEADER */}
+        <div className="flex justify-between items-start border-b-4 border-slate-900 pb-8 mb-8">
+          <div className="flex-1 space-y-4">
+             <div className="w-32 h-32 bg-slate-50 border-2 border-dashed flex items-center justify-center relative no-print rounded-xl">
+                {logo ? <img src={logo} className="w-full h-full object-contain p-2" /> : <ImageIcon className="text-slate-300" />}
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => { const r=new FileReader(); r.onload=x=>setLogo(x.target.result); r.readAsDataURL(e.target.files[0]); }} />
+             </div>
+             {logo && <img src={logo} className="hidden print:block w-36 h-auto mb-4" />}
+             
+             <div className="space-y-2">
+                <div>
+                   <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Proyecto / Obra</p>
+                   <input maxLength={80} onFocus={handleFocus} className="w-full text-[14px] font-black uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.obra} onChange={e=>setProject({...project, obra:e.target.value})} />
+                </div>
+                <div>
+                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Mandante</p>
+                   <input maxLength={60} onFocus={handleFocus} className="w-full text-[11px] font-bold text-slate-700 uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.mandante} onChange={e=>setProject({...project, mandante:e.target.value})} />
+                </div>
+                <div>
+                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Ubicación</p>
+                   <input maxLength={80} onFocus={handleFocus} className="w-full text-[10px] text-slate-500 uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.ubicacion} onChange={e=>setProject({...project, ubicacion:e.target.value})} />
+                </div>
+             </div>
+          </div>
+          <div className="text-right">
+            <h1 className="text-4xl font-black italic text-slate-900 tracking-tighter">PRESUPUESTO</h1>
+            <div className="text-[8px] bg-slate-900 text-white px-3 py-1 rounded font-black inline-block uppercase mt-1">Versión 2.8 PRO</div>
+            <div className="mt-12">
+              <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Fecha Emisión</p>
+              <input type="date" className="text-[12px] font-black outline-none bg-transparent text-right" value={project.fecha} onChange={e=>setProject({...project, fecha:e.target.value})} />
+            </div>
+          </div>
+        </div>
+
+        {/* TABLA PRINCIPAL */}
+        <div className="min-h-[500px]">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white text-[9px] font-black uppercase">
+                <th className="p-3 text-left w-[8%]">ÍTEM</th>
+                <th className="p-3 text-left">DESCRIPCIÓN DE PARTIDAS</th>
+                <th className="p-3 text-center w-[8%]">UNI</th>
+                <th className="p-3 text-right w-[12%]">CANT</th>
+                <th className="p-3 text-right w-[15%]">P. UNIT ({config.moneda})</th>
+                <th className="p-3 text-right w-[15%]">SUBTOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {itemsWithIndex.map((item, idx) => (
+                <React.Fragment key={item.id}>
+                  <tr className={`border-b ${item.type === 'capitulo' ? 'bg-slate-50 font-black border-slate-300' : 'border-slate-100'}`}>
+                    <td className="p-2 text-[10px] text-slate-500 font-bold">{item.indexLabel}</td>
+                    <td className="p-2">
+                      <input onFocus={handleFocus} className={`w-full bg-transparent outline-none uppercase ${item.type === 'capitulo' ? 'text-[11px] font-black' : 'text-[10px] font-medium'}`} value={item.nombre} onChange={e=>updateItem(item.id, 'nombre', e.target.value)} />
+                    </td>
+                    <td className="p-2 text-center uppercase text-[9px] font-bold">{item.unidad}</td>
+                    <td className="p-2 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                          <span className="text-[10px] font-bold">{item.type === 'partida' ? fmt(item.cant, 'cant') : ''}</span>
+                          {item.type === 'partida' && <button onClick={()=>{setSelectedId(item.id); setActiveModal('cubicar')}} className="no-print text-blue-500 opacity-50 hover:opacity-100"><Calculator size={12}/></button>}
+                       </div>
+                    </td>
+                    <td className="p-2 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                          <span className={`text-[10px] font-bold ${item.type === 'partida' ? 'text-blue-800' : ''}`}>{item.type === 'partida' ? fmt(item.precio, 'precio') : ''}</span>
+                          {item.type === 'partida' && <button onClick={()=>{setSelectedId(item.id); setActiveModal('apu')}} className="no-print text-orange-400 opacity-50 hover:opacity-100"><Edit3 size={12}/></button>}
+                       </div>
+                    </td>
+                    <td className="p-2 text-right text-[10px] font-black">
+                      {item.type === 'partida' ? fmt(item.cant * item.precio, 'subtotal') : ''}
+                    </td>
+                  </tr>
+                  <tr className="no-print border-b border-slate-50">
+                    <td colSpan={6} className="p-1 px-4 text-right space-x-2">
+                       <button onClick={()=>addItem(idx, 'capitulo')} className="text-[7px] bg-slate-700 text-white px-2 py-0.5 rounded opacity-50 hover:opacity-100 transition-all">+ CAP</button>
+                       <button onClick={()=>addItem(idx, 'partida')} className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded opacity-50 hover:opacity-100 transition-all">+ PAR</button>
+                       <button onClick={()=>setItems(items.filter(i=>i.id!==item.id))} className="text-red-300 hover:text-red-500"><Trash2 size={10}/></button>
+                    </td>
+                  </tr>
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* TOTALES Y RESUMEN */}
+        <div className="mt-12 flex flex-col md:flex-row justify-between gap-12 border-t-4 border-slate-900 pt-8">
+           <div className="flex-1 space-y-6">
+              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 no-print">
+      import React, { useState, useMemo, useEffect } from 'react';
+import { 
+  Trash2, X, Settings, PlusCircle, Box, Image as ImageIcon, 
+  Save, Sparkles, Loader2, Calculator, Edit3, ChevronRight,
+  Info, Briefcase
+} from 'lucide-react';
+
+const apiKey = ""; 
+
+const loadHtml2Pdf = () => {
+  return new Promise((resolve) => {
+    if (window.html2pdf) return resolve();
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = resolve;
+    document.head.appendChild(script);
+  });
+};
+
+const numeroALetras = (num, moneda) => {
+  const Unidades = (n) => ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'][n];
+  const Decenas = (n) => {
+    if (n<10) return Unidades(n);
+    if (n<20) return ['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIEZ Y SEIS','DIEZ Y SIETE','DIEZ Y OCHO','DIEZ Y NUEVE'][n-10];
+    const d = Math.floor(n/10); const u = n%10;
+    const t = ['','','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'][d];
+    return u === 0 ? t : (d === 2 ? 'VEINTI' : t + ' Y ') + Unidades(u);
+  };
+  const Centenas = (n) => {
+    if (n === 100) return 'CIEN';
+    if (n < 100) return Decenas(n);
+    const c = Math.floor(n/100); const r = n%100;
+    const t = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'][c];
+    return r === 0 ? t : t + ' ' + Decenas(r);
+  };
+  const miles = (n) => {
+    if (n === 1000) return 'MIL';
+    if (n < 1000) return Centenas(n);
+    const m = Math.floor(n/1000); const r = n%1000;
+    const t = m === 1 ? 'MIL' : Centenas(m) + ' MIL';
+    return r === 0 ? t : t + ' ' + Centenas(r);
+  };
+  const millones = (n) => {
+    if (n < 1000000) return miles(n);
+    const m = Math.floor(n/1000000); const r = n%1000000;
+    const t = m === 1 ? 'UN MILLÓN' : Centenas(m) + ' MILLONES';
+    return r === 0 ? t : t + ' ' + miles(r);
+  };
+  const entero = Math.floor(num);
+  const centavos = Math.round((num - entero) * 100);
+  const texto = millones(entero);
+  const sufijo = moneda === 'CLP' ? 'PESOS' : 'DÓLARES';
+  return `SON: ${texto} ${sufijo} ${centavos > 0 ? `CON ${centavos}/100` : ''}.-`.toUpperCase();
+};
+
+export default function App() {
+  const [activeModal, setActiveModal] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [logo, setLogo] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiSummary, setAiSummary] = useState("");
+  
+  const [config, setConfig] = useState({
+    moneda: 'CLP',
+    paridad: 950,
+    decimalesCant: 2,
+    decimalesPrecio: 0,
+    decimalesSubtotal: 0,
+    decimalesTotal: 0
+  });
+
+  const [project, setProject] = useState({ 
+    obra: 'INSTALACIÓN FOTOVOLTAICA 10KW - PROYECTO SOLIRIAN', 
+    mandante: 'SOLIRIAN SPA - CHILE', 
+    ubicacion: 'AV. PROVIDENCIA 1234, SANTIAGO', 
+    fecha: new Date().toISOString().split('T')[0],
+    profesional: 'CONSTRUCTORA SOLIRIAN & LIBERTAD65',
+    contacto: '+56 9 1234 5678 | contacto@profesional.cl | Santiago, Chile'
+  });
+
+  const [items, setItems] = useState([
+    { id: '1', type: 'capitulo', nombre: 'OBRAS PREVIAS', unidad: '', cant: 0, precio: 0 },
+    { id: '2', type: 'partida', nombre: 'Instalación de faenas', unidad: 'GL', cant: 1, precio: 550000 },
+  ]);
+
+  const [globalGG, setGlobalGG] = useState(15);
+  const [estudioGG, setEstudioGG] = useState([
+    { desc: 'Arriendos y Equipos', monto: 0 },
+    { desc: 'Leyes Sociales', monto: 0 },
+    { desc: 'Seguros y Boletas', monto: 0 }
+  ]);
+  const [globalUtil, setGlobalUtil] = useState(10);
+  const [cubicaciones, setCubicaciones] = useState({});
+
+  const itemsWithIndex = useMemo(() => {
+    let capCount = 0;
+    let parCount = 0;
+    return items.map((item) => {
+      if (item.type === 'capitulo') {
+        capCount++;
+        parCount = 0;
+        return { ...item, indexLabel: capCount.toString().padStart(2, '0') };
+      } else {
+        parCount++;
+        return { ...item, indexLabel: `${capCount.toString().padStart(2, '0')}.${parCount}` };
+      }
+    });
+  }, [items]);
+
+  const fmt = (val, type = 'precio') => {
+    let dec = 0;
+    if (type === 'cant') dec = config.decimalesCant;
+    else if (type === 'precio') dec = config.decimalesPrecio;
+    else if (type === 'subtotal') dec = config.decimalesSubtotal;
+    else if (type === 'total') dec = config.decimalesTotal;
+
+    return Number(val || 0).toLocaleString('de-DE', { 
+      minimumFractionDigits: dec, 
+      maximumFractionDigits: dec 
+    });
+  };
+
+  const totales = useMemo(() => {
+    let directo = 0;
+    items.forEach(i => { if (i.type === 'partida') directo += Number(i.cant) * Number(i.precio); });
+    const ggTotal = directo * (Number(globalGG) / 100);
+    const utilTotal = directo * (Number(globalUtil) / 100);
+    const neto = directo + ggTotal + utilTotal;
+    const iva = neto * 0.19;
+    return { directo, ggTotal, utilTotal, neto, iva, total: neto + iva };
+  }, [items, globalGG, globalUtil]);
+
+  const addItem = (index, type) => {
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      nombre: type === 'capitulo' ? 'NUEVO CAPÍTULO' : 'Nueva partida de obra',
+      unidad: type === 'partida' ? 'UN' : '',
+      cant: type === 'partida' ? 1 : 0,
+      precio: 0
+    };
+    const newArr = [...items];
+    newArr.splice(index + 1, 0, newItem);
+    setItems(newArr);
+  };
+
+  const updateItem = (id, field, val) => {
+    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+  };
+
+  const handleFocus = (e) => {
+    const val = e.target.value.toLowerCase();
+    const defaults = ["nueva partida", "nuevo capítulo", "nombre de la obra", "mandante", "ubicación", "constructora"];
+    if (defaults.some(d => val.includes(d))) {
+      e.target.value = "";
+    }
+  };
+
+  // --- MODAL ESTUDIO GG ---
+  const EstudioGGModal = () => {
+    const totalEstudio = estudioGG.reduce((acc, curr) => acc + Number(curr.monto), 0);
+    const percCalculado = totales.directo > 0 ? (totalEstudio / totales.directo) * 100 : 0;
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/95 z-[1000] flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-slate-800 p-4 text-white flex justify-between">
+            <h3 className="text-sm font-bold uppercase">Estudio de Gastos Generales</h3>
+            <button onClick={() => setActiveModal(null)}><X /></button>
+          </div>
+          <div className="p-4 space-y-3">
+            {estudioGG.map((item, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <input className="flex-1 p-2 border-b outline-none text-[11px] uppercase" value={item.desc} onChange={e=>{
+                  const n = [...estudioGG]; n[idx].desc = e.target.value; setEstudioGG(n);
+                }}/>
+                <input type="number" className="w-24 p-2 border-b outline-none text-[11px] text-right" value={item.monto} onChange={e=>{
+                  const n = [...estudioGG]; n[idx].monto = e.target.value; setEstudioGG(n);
+                }}/>
+                <button onClick={() => setEstudioGG(estudioGG.filter((_, i) => i !== idx))}><Trash2 size={12} className="text-red-400"/></button>
+              </div>
+            ))}
+            <button onClick={() => setEstudioGG([...estudioGG, { desc: '', monto: 0 }])} className="text-[10px] font-black text-blue-600">+ AÑADIR CONCEPTO</button>
+          </div>
+          <div className="p-4 bg-slate-50 border-t">
+            <div className="flex justify-between items-center mb-4">
+              <span className="text-[10px] font-black uppercase text-slate-500">Monto Total GG:</span>
+              <span className="text-sm font-bold">{fmt(totalEstudio, 'total')}</span>
+            </div>
+            <div className="flex justify-between items-center bg-blue-100 p-2 rounded">
+              <span className="text-[10px] font-black text-blue-800 uppercase">Porcentaje Sugerido:</span>
+              <span className="text-sm font-black text-blue-900">{percCalculado.toFixed(2)}%</span>
+            </div>
+            <button onClick={() => { setGlobalGG(percCalculado.toFixed(2)); setActiveModal(null); }} className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg font-black text-xs uppercase">Aplicar Porcentaje</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CubicarModal = ({ id }) => {
+    const partida = items.find(i => i.id === id);
+    const [rows, setRows] = useState(cubicaciones[id] || [{ d: 'Eje A-B', n: 1, l: 0, a: 0, h: 0 }]);
+    const total = rows.reduce((acc, r) => acc + (Number(r.n) * (Number(r.l) || 1) * (Number(r.a) || 1) * (Number(r.h) || 1)), 0);
+
+    return (
+      <div className="fixed inset-0 bg-slate-900/95 z-[1000] flex items-center justify-center p-4">
+        <div className="bg-white w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl">
+          <div className="bg-slate-800 p-4 text-white flex justify-between">
+            <h3 className="text-sm font-bold uppercase">Cubicación: {partida.nombre}</h3>
+            <button onClick={() => setActiveModal(null)}><X /></button>
+          </div>
+          <div className="p-4 overflow-x-auto">
+            <table className="w-full text-[11px] border-collapse">
+              <thead>
+                <tr className="bg-slate-100 uppercase font-black">
+                  <th className="p-2 text-left">Eje/Ubicación</th>
+                  <th className="p-2">Cant</th><th className="p-2">Largo</th><th className="p-2">Ancho</th><th className="p-2">Alto</th><th className="p-2 text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b">
+                    <td><input className="w-full p-2 outline-none uppercase" value={r.d} onChange={e=>{const n=[...rows]; n[i].d=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.n} onChange={e=>{const n=[...rows]; n[i].n=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.l} onChange={e=>{const n=[...rows]; n[i].l=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.a} onChange={e=>{const n=[...rows]; n[i].a=e.target.value; setRows(n)}}/></td>
+                    <td><input type="number" className="w-full p-2 text-center outline-none" value={r.h} onChange={e=>{const n=[...rows]; n[i].h=e.target.value; setRows(n)}}/></td>
+                    <td className="text-right font-bold">{fmt(Number(r.n) * (Number(r.l)||1) * (Number(r.a)||1) * (Number(r.h)||1), 'cant')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="p-4 bg-slate-50 flex justify-between items-center border-t">
+            <p className="text-lg font-black italic">TOTAL: {fmt(total, 'cant')} {partida.unidad}</p>
+            <button onClick={()=>{setCubicaciones({...cubicaciones, [id]:rows}); updateItem(id, 'cant', total); setActiveModal(null)}} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-black text-xs uppercase">Confirmar Cubicaje</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex flex-col items-center w-full pb-10">
+      
+      {/* TOOLBAR */}
+      <div className="no-print w-full bg-slate-900 text-white p-3 sticky top-0 z-[100] flex justify-between items-center shadow-lg">
+        <div className="flex items-center gap-4">
+          <button onClick={() => setActiveModal('config')} className="p-2 bg-slate-800 rounded-lg text-blue-400 border border-blue-400/30 hover:bg-slate-700 transition-colors"><Settings size={20}/></button>
+          <div className="text-[10px] space-x-3">
+             <span className="font-black text-blue-400">{config.moneda}</span>
+             {config.moneda === 'USD' && <span className="text-slate-400">T/C: ${config.paridad}</span>}
+          </div>
+        </div>
+        <button id="btn-export" onClick={async () => {
+          const btn = document.getElementById('btn-export'); btn.innerText = "PREPARANDO...";
+          await loadHtml2Pdf();
+          const opt = { margin: 5, filename: `Presupuesto_${project.obra}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+          await window.html2pdf().from(document.getElementById('presupuesto-pdf')).set(opt).save();
+          btn.innerText = "EXPORTAR PDF";
+        }} className="bg-blue-600 px-8 py-2 rounded-lg text-[10px] font-black uppercase hover:bg-blue-700 active:scale-95 transition-all">Exportar PDF</button>
+      </div>
+
+      <div id="presupuesto-pdf" className="w-full max-w-[210mm] bg-white min-h-screen shadow-xl p-8 md:p-14 mt-4 relative overflow-hidden">
+        
+        {/* HEADER */}
+        <div className="flex justify-between items-start border-b-4 border-slate-900 pb-8 mb-8">
+          <div className="flex-1 space-y-4">
+             <div className="w-32 h-32 bg-slate-50 border-2 border-dashed flex items-center justify-center relative no-print rounded-xl">
+                {logo ? <img src={logo} className="w-full h-full object-contain p-2" /> : <ImageIcon className="text-slate-300" />}
+                <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => { const r=new FileReader(); r.onload=x=>setLogo(x.target.result); r.readAsDataURL(e.target.files[0]); }} />
+             </div>
+             {logo && <img src={logo} className="hidden print:block w-36 h-auto mb-4" />}
+             
+             <div className="space-y-2">
+                <div>
+                   <p className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Proyecto / Obra</p>
+                   <input maxLength={80} onFocus={handleFocus} className="w-full text-[14px] font-black uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.obra} onChange={e=>setProject({...project, obra:e.target.value})} />
+                </div>
+                <div>
+                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Mandante</p>
+                   <input maxLength={60} onFocus={handleFocus} className="w-full text-[11px] font-bold text-slate-700 uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.mandante} onChange={e=>setProject({...project, mandante:e.target.value})} />
+                </div>
+                <div>
+                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Ubicación</p>
+                   <input maxLength={80} onFocus={handleFocus} className="w-full text-[10px] text-slate-500 uppercase outline-none border-b border-transparent focus:border-blue-400" value={project.ubicacion} onChange={e=>setProject({...project, ubicacion:e.target.value})} />
+                </div>
+             </div>
+          </div>
+          <div className="text-right">
+            <h1 className="text-4xl font-black italic text-slate-900 tracking-tighter">PRESUPUESTO</h1>
+            <div className="text-[8px] bg-slate-900 text-white px-3 py-1 rounded font-black inline-block uppercase mt-1">Versión 2.8 PRO</div>
+            <div className="mt-12">
+              <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest">Fecha Emisión</p>
+              <input type="date" className="text-[12px] font-black outline-none bg-transparent text-right" value={project.fecha} onChange={e=>setProject({...project, fecha:e.target.value})} />
+            </div>
+          </div>
+        </div>
+
+        {/* TABLA PRINCIPAL */}
+        <div className="min-h-[500px]">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white text-[9px] font-black uppercase">
+                <th className="p-3 text-left w-[8%]">ÍTEM</th>
+                <th className="p-3 text-left">DESCRIPCIÓN DE PARTIDAS</th>
+                <th className="p-3 text-center w-[8%]">UNI</th>
+                <th className="p-3 text-right w-[12%]">CANT</th>
+                <th className="p-3 text-right w-[15%]">P. UNIT ({config.moneda})</th>
+                <th className="p-3 text-right w-[15%]">SUBTOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {itemsWithIndex.map((item, idx) => (
+                <React.Fragment key={item.id}>
+                  <tr className={`border-b ${item.type === 'capitulo' ? 'bg-slate-50 font-black border-slate-300' : 'border-slate-100'}`}>
+                    <td className="p-2 text-[10px] text-slate-500 font-bold">{item.indexLabel}</td>
+                    <td className="p-2">
+                      <input onFocus={handleFocus} className={`w-full bg-transparent outline-none uppercase ${item.type === 'capitulo' ? 'text-[11px] font-black' : 'text-[10px] font-medium'}`} value={item.nombre} onChange={e=>updateItem(item.id, 'nombre', e.target.value)} />
+                    </td>
+                    <td className="p-2 text-center uppercase text-[9px] font-bold">{item.unidad}</td>
+                    <td className="p-2 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                          <span className="text-[10px] font-bold">{item.type === 'partida' ? fmt(item.cant, 'cant') : ''}</span>
+                          {item.type === 'partida' && <button onClick={()=>{setSelectedId(item.id); setActiveModal('cubicar')}} className="no-print text-blue-500 opacity-50 hover:opacity-100"><Calculator size={12}/></button>}
+                       </div>
+                    </td>
+                    <td className="p-2 text-right">
+                       <div className="flex items-center justify-end gap-1">
+                          <span className={`text-[10px] font-bold ${item.type === 'partida' ? 'text-blue-800' : ''}`}>{item.type === 'partida' ? fmt(item.precio, 'precio') : ''}</span>
+                          {item.type === 'partida' && <button onClick={()=>{setSelectedId(item.id); setActiveModal('apu')}} className="no-print text-orange-400 opacity-50 hover:opacity-100"><Edit3 size={12}/></button>}
+                       </div>
+                    </td>
+                    <td className="p-2 text-right text-[10px] font-black">
+                      {item.type === 'partida' ? fmt(item.cant * item.precio, 'subtotal') : ''}
+                    </td>
+                  </tr>
+                  <tr className="no-print border-b border-slate-50">
+                    <td colSpan={6} className="p-1 px-4 text-right space-x-2">
+                       <button onClick={()=>addItem(idx, 'capitulo')} className="text-[7px] bg-slate-700 text-white px-2 py-0.5 rounded opacity-50 hover:opacity-100 transition-all">+ CAP</button>
+                       <button onClick={()=>addItem(idx, 'partida')} className="text-[7px] bg-blue-600 text-white px-2 py-0.5 rounded opacity-50 hover:opacity-100 transition-all">+ PAR</button>
+                       <button onClick={()=>setItems(items.filter(i=>i.id!==item.id))} className="text-red-300 hover:text-red-500"><Trash2 size={10}/></button>
+                    </td>
+                  </tr>
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* TOTALES Y RESUMEN */}
+        <div className="mt-12 flex flex-col md:flex-row justify-between gap-12 border-t-4 border-slate-900 pt-8">
+           <div className="flex-1 space-y-6">
+              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 no-print">
+                 <button onClick={async ()=>{
+                    setIsAiLoading(true);
+                    const prompt = `Genera un análisis técnico corto para esta obra: ${project.obra}. Incluye consideraciones sobre energía solar y eficiencia.`;
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                      method: 'POST', body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+                    const data = await res.json();
+                    setAiSummary(data.candidates?.[0]?.content?.parts?.[0]?.text || "");
+                    setIsAiLoading(false);
+                 }} className="flex items-center gap-2 text-[10px] font-black text-blue-700 uppercase mb-3 tracking-widest">
+                   {isAiLoading ? <Loader2 size={12} className="animate-spin"/> : <Sparkles size={12}/>} Resumen Técnico IA ✨
+                 </button>
+                 <p className="text-[10px] leading-relaxed text-slate-600 font-medium italic">{aiSummary || "Pulsa para generar análisis predictivo del proyecto..."}</p>
+              </div>
+              <div className="text-[8px] text-slate-400 font-bold space-y-1">
+                <p>• VALIDEZ DE LA OFERTA: 15 DÍAS CORRIDOS.</p>
+                <p>• NO INCLUYE DERECHOS MUNICIPALES NI TRÁMITES SEC.</p>
+                <p>• FORMA DE PAGO: 50% ANTICIPO Y 50% CONTRA RECEPCIÓN CONFORME.</p>
+              </div>
+           </div>
+
+           <div className="w-full max-w-[300px] space-y-2">
+              <div className="flex justify-between text-[11px] font-black border-b border-slate-100 pb-1">
+                <span className="text-slate-500 uppercase tracking-widest">Costo Directo</span>
+                <span>{fmt(totales.directo, 'subtotal')}</span>
+              </div>
+              <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                <div className="flex items-center gap-2">
+                  <span>Gastos Generales ({globalGG}%)</span>
+                  <button onClick={()=>setActiveModal('estudioGG')} className="no-print text-blue-400"><Info size={12}/></button>
+                </div>
+                <span>{fmt(totales.ggTotal, 'subtotal')}</span>
+              </div>
+              <div className="flex justify-between text-[10px] font-bold text-slate-500">
+                <span>Utilidad ({globalUtil}%)</span>
+                <span>{fmt(totales.utilTotal, 'subtotal')}</span>
+              </div>
+              <div className="flex justify-between text-[12px] font-black bg-slate-900 text-white p-3 rounded-lg my-3 shadow-md">
+                <span className="tracking-widest uppercase">Valor Neto</span>
+                <span>{fmt(totales.neto, 'total')}</span>
+              </div>
+              <div className="flex justify-between text-[11px] font-bold px-1">
+                <span className="text-slate-500">I.V.A (19%)</span>
+                <span>{fmt(totales.iva, 'total')}</span>
+              </div>
+              <div className="flex justify-between items-end border-t-2 border-slate-900 pt-3 mt-2">
+                 <span className="text-[13px] font-black text-blue-600 tracking-tighter uppercase">Total {config.moneda}</span>
+                 <span className="text-2xl font-black">{fmt(totales.total, 'total')}</span>
+              </div>
+              <div className="text-[8px] text-right font-black italic text-slate-400 mt-2 uppercase leading-none">
+                 {numeroALetras(totales.total, config.moneda)}
+              </div>
+           </div>
+        </div>
+
+        {/* PIE DE PÁGINA PROFESIONAL (Full Width) */}
+        <div className="mt-24 border-t-2 border-slate-200 pt-6">
+           <div className="w-full text-center">
+              <input onFocus={handleFocus} className="w-full text-center text-[11px] font-black uppercase outline-none bg-transparent text-slate-800 tracking-widest" value={project.profesional} onChange={e=>setProject({...project, profesional:e.target.value})} />
+              <input onFocus={handleFocus} className="w-full text-center text-[9px] font-bold text-slate-400 outline-none bg-transparent mt-1" value={project.contacto} onChange={e=>setProject({...project, contacto:e.target.value})} />
+           </div>
+           
+           <div className="mt-16 flex justify-around">
+              <div className="w-48 text-center">
+                 <div className="h-0.5 w-full bg-slate-300 mb-2"></div>
+                 <p className="text-[9px] font-black text-slate-800 uppercase">Firma Mandante</p>
+                 <p className="text-[7px] text-slate-400 font-bold uppercase">Aceptación Presupuesto</p>
+              </div>
+              <div className="w-48 text-center opacity-30">
+                 <div className="h-0.5 w-full bg-slate-300 mb-2"></div>
+                 <p className="text-[9px] font-black text-slate-800 uppercase">Timbre Empresa</p>
+              </div>
+           </div>
+        </div>
+
+      </div>
+
+      {/* MODAL CONFIGURACIÓN COMPLETA */}
+      {activeModal === 'config' && (
+        <div className="fixed inset-0 bg-slate-900/90 z-[1000] flex items-center justify-center p-4 backdrop-blur-sm">
+           <div className="bg-white p-8 rounded-3xl w-full max-w-md shadow-2xl">
+              <div className="flex justify-between items-center mb-6 border-b pb-4">
+                 <h3 className="font-black text-xs uppercase tracking-widest text-slate-500">Configuración de Precisión</h3>
+                 <button onClick={()=>setActiveModal(null)}><X className="text-slate-400 hover:text-red-500"/></button>
+              </div>
+              
+              <div className="space-y-6">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Moneda Base</label>
+                       <select className="w-full p-2 border rounded-xl font-bold text-xs" value={config.moneda} onChange={e=>setConfig({...config, moneda: e.target.value})}>
+                          <option value="CLP">Pesos Chilenos (CLP)</option>
+                          <option value="USD">Dólares (USD)</option>
+                       </select>
+                    </div>
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Paridad (USD/CLP)</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={config.paridad} onChange={e=>setConfig({...config, paridad: e.target.value})}/>
+                    </div>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4 border-t pt-4">
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Decimales Cantidad</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={config.decimalesCant} onChange={e=>setConfig({...config, decimalesCant: parseInt(e.target.value)})}/>
+                    </div>
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Decimales P.Unit</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={config.decimalesPrecio} onChange={e=>setConfig({...config, decimalesPrecio: parseInt(e.target.value)})}/>
+                    </div>
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Decimales Subtotal</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={config.decimalesSubtotal} onChange={e=>setConfig({...config, decimalesSubtotal: parseInt(e.target.value)})}/>
+                    </div>
+                    <div>
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Decimales Total</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={config.decimalesTotal} onChange={e=>setConfig({...config, decimalesTotal: parseInt(e.target.value)})}/>
+                    </div>
+                 </div>
+
+                 <div className="flex gap-4 border-t pt-4">
+                    <div className="flex-1">
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Utilidad (%)</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={globalUtil} onChange={e=>setGlobalUtil(e.target.value)}/>
+                    </div>
+                    <div className="flex-1">
+                       <label className="text-[9px] font-black text-slate-400 uppercase">Gastos Grales (%)</label>
+                       <input type="number" className="w-full p-2 border rounded-xl font-bold text-xs" value={globalGG} onChange={e=>setGlobalGG(e.target.value)}/>
+                    </div>
+                 </div>
+
+                 <button onClick={()=>setActiveModal(null)} className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-xl hover:bg-slate-800 transition-all">Guardar Configuración</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* OTROS MODALES */}
+      {activeModal === 'cubicar' && <CubicarModal id={selectedId}/>}
+      {activeModal === 'estudioGG' && <EstudioGGModal />}
+      
+      {activeModal === 'apu' && (
+        <div className="fixed inset-0 bg-slate-900/95 z-[1000] flex items-center justify-center p-4">
+           <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+              <div className="bg-orange-600 p-5 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2"><Briefcase size={16}/><h3 className="text-xs font-black uppercase tracking-widest">Ajuste de Precio Unitario</h3></div>
+                <button onClick={()=>setActiveModal(null)}><X/></button>
+              </div>
+              <div className="p-10 text-center space-y-6">
+                 <input type="number" className="text-5xl font-black text-center border-b-4 border-slate-900 outline-none w-full pb-2" value={items.find(i=>i.id===selectedId)?.precio} onChange={e=>updateItem(selectedId, 'precio', e.target.value)} />
+                 <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Valor Neto Unitario ({config.moneda})</p>
+                 <button onClick={()=>setActiveModal(null)} className="bg-slate-900 text-white px-12 py-4 rounded-2xl font-black text-xs uppercase shadow-xl hover:scale-105 transition-all">Confirmar Precio</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+ 

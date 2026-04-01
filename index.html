@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Presupuesto Pro v3.0 - Solirian</title>
+    <!-- Librerías con prioridad de carga -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; -webkit-print-color-adjust: exact; margin: 0; padding: 0; }
+        .tab-active { border-bottom: 4px solid #2563eb; color: #1e40af; font-weight: 900; }
+        /* Evita que se vea blanco mientras carga */
+        #root:empty { display: flex; align-items: center; justify-content: center; height: 100vh; background: #f1f5f9; }
+        #root:empty::after { content: "CARGANDO PANEL SOLIRIAN..."; font-weight: 900; font-size: 12px; color: #94a3b8; letter-spacing: 0.2em; }
+        @media print { .no-print { display: none !important; } }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+
+        const Icons = {
+            Settings: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Trash: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>,
+            X: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
+            Edit: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+        };
+
+        function App() {
+            const [activeModal, setActiveModal] = useState(null);
+            const [activeTab, setActiveTab] = useState('config');
+            const [selectedItemId, setSelectedItemId] = useState(null);
+            const [logo, setLogo] = useState(null);
+
+            const [config, setConfig] = useState({
+                moneda: 'CLP', paridad: 950,
+                decimalesCant: 2, decimalesPrecio: 0,
+                decimalesSubtotal: 0, decimalesTotal: 0
+            });
+
+            const [project, setProject] = useState({ 
+                obra: 'PROYECTO FOTOVOLTAICO - SOLIRIAN', 
+                mandante: 'MANDANTE EJEMPLO SPA', 
+                ubicacion: 'SANTIAGO, CHILE', 
+                fecha: new Date().toISOString().split('T')[0],
+                profesional: 'SOLIRIAN & LIBERTAD65',
+                contacto: 'contacto@solirian.cl'
+            });
+
+            const [items, setItems] = useState([
+                { id: '1', type: 'capitulo', nombre: '1. OBRAS PREVIAS', unidad: '', cant: 0, precio: 0 },
+                { id: '2', type: 'partida', nombre: 'Instalación de faenas', unidad: 'GL', cant: 1, precio: 450000 },
+            ]);
+
+            const [estudioGG, setEstudioGG] = useState([{ desc: 'Seguros contra accidentes', monto: 120000 }]);
+            const [globalGG, setGlobalGG] = useState(15);
+            const [globalUtil, setGlobalUtil] = useState(10);
+
+            const fmt = (val, type = 'precio') => {
+                const dec = config[`decimales${type.charAt(0).toUpperCase() + type.slice(1)}`] || 0;
+                return Number(val || 0).toLocaleString('de-DE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+            };
+
+            const totales = useMemo(() => {
+                let directo = items.reduce((acc, i) => i.type === 'partida' ? acc + (Number(i.cant) * Number(i.precio)) : acc, 0);
+                const gg = directo * (globalGG / 100);
+                const util = directo * (globalUtil / 100);
+                const neto = directo + gg + util;
+                return { directo, gg, util, neto, iva: neto * 0.19, total: neto * 1.19 };
+            }, [items, globalGG, globalUtil]);
+
+            const handleLogo = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (x) => setLogo(x.target.result);
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const updateItem = (id, field, val) => setItems(items.map(i => i.id === id ? {...i, [field]: val} : i));
+
+            return (
+                <div className="min-h-screen pb-20">
+                    <nav className="no-print bg-slate-900 text-white p-4 sticky top-0 z-[100] flex justify-between items-center shadow-xl">
+                        <div className="flex gap-2 md:gap-4">
+                            <button onClick={()=>{setActiveModal('main'); setActiveTab('config');}} className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl hover:bg-white/20">
+                                <Icons.Settings /><span className="hidden md:inline text-[10px] font-black uppercase">Ajustes</span>
+                            </button>
+                            <button onClick={()=>{setActiveModal('main'); setActiveTab('gg');}} className="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl hover:bg-white/20">
+                                <Icons.Edit /><span className="hidden md:inline text-[10px] font-black uppercase">Gastos Grales</span>
+                            </button>
+                        </div>
+                        <button onClick={() => window.print()} className="bg-blue-600 px-6 py-2 rounded-xl text-[10px] font-black uppercase">PDF</button>
+                    </nav>
+
+                    <div className="flex justify-center p-2 md:p-4">
+                        <div className="w-full max-w-[210mm] bg-white shadow-2xl p-6 md:p-16 min-h-[297mm] flex flex-col border border-slate-200 overflow-hidden">
+                            
+                            {/* HEADER */}
+                            <div className="flex flex-col md:flex-row justify-between items-start border-b-8 border-slate-900 pb-10 mb-10 gap-6">
+                                <div className="space-y-6 flex-1 w-full">
+                                    <div className="w-32 h-32 bg-slate-50 border-4 border-dashed rounded-3xl relative no-print flex items-center justify-center overflow-hidden">
+                                        {logo ? <img src={logo} className="w-full h-full object-contain" alt="Logo" /> : <span className="text-[8px] font-black text-slate-300">LOGO</span>}
+                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleLogo} />
+                                    </div>
+                                    {logo && <img src={logo} className="hidden print:block w-32 h-auto" alt="Logo Print" />}
+                                    <div className="border-l-4 border-blue-600 pl-4">
+                                        <p className="text-[8px] font-black text-blue-600 uppercase">Obra</p>
+                                        <input className="w-full text-xl font-black uppercase outline-none" value={project.obra} onChange={e=>setProject({...project, obra:e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className="md:text-right w-full md:w-auto">
+                                    <h1 className="text-4xl font-black italic tracking-tighter">PRESUPUESTO</h1>
+                                    <div className="bg-blue-600 text-white px-3 py-1 text-[8px] font-black rounded-full inline-block mt-2 uppercase">SOLIRIAN v3.0</div>
+                                </div>
+                            </div>
+
+                            {/* TABLA DE PARTIDAS */}
+                            <div className="flex-grow overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[600px]">
+                                    <thead className="bg-slate-900 text-white text-[9px] font-black uppercase">
+                                        <tr>
+                                            <th className="p-3">Descripción</th>
+                                            <th className="p-3 text-center">Unid</th>
+                                            <th className="p-3 text-right">Cant</th>
+                                            <th className="p-3 text-right">P. Unit</th>
+                                            <th className="p-3 text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-[10px]">
+                                        {items.map((item) => (
+                                            <tr key={item.id} className={`border-b ${item.type === 'capitulo' ? 'bg-slate-50 font-black' : ''}`}>
+                                                <td className="p-2"><input className="w-full bg-transparent outline-none uppercase" value={item.nombre} onChange={e=>updateItem(item.id, 'nombre', e.target.value)} /></td>
+                                                <td className="p-2"><input className="w-full text-center bg-transparent outline-none uppercase" value={item.unidad} onChange={e=>updateItem(item.id, 'unidad', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" className="w-full text-right bg-transparent outline-none" value={item.cant} onChange={e=>updateItem(item.id, 'cant', e.target.value)} /></td>
+                                                <td className="p-2">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                        <span className="font-bold">{fmt(item.precio)}</span>
+                                                        <button onClick={()=>{setSelectedItemId(item.id); setActiveModal('main'); setActiveTab('apu');}} className="no-print text-blue-400 p-1"><Icons.Edit /></button>
+                                                    </div>
+                                                </td>
+                                                <td className="p-2 text-right font-black">{fmt(item.cant * item.precio, 'subtotal')}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                                <div className="no-print flex gap-2 mt-4">
+                                    <button onClick={()=>setItems([...items, {id:Date.now(), type:'partida', nombre:'Nueva Partida', unidad:'UN', cant:1, precio:0}])} className="bg-slate-200 px-3 py-1.5 rounded text-[9px] font-black uppercase">+ Agregar</button>
+                                </div>
+                            </div>
+
+                            {/* TOTALES */}
+                            <div className="mt-10 flex flex-col md:flex-row justify-between border-t-4 border-slate-900 pt-8 gap-8">
+                                <div className="flex-1 text-[9px] uppercase font-bold text-slate-400">
+                                    <p>Validez: 15 días</p>
+                                    <p>Pago: 50% anticipo / 50% entrega</p>
+                                </div>
+                                <div className="w-full md:w-64 space-y-2">
+                                    <div className="flex justify-between text-[10px] font-bold"><span>Costo Directo</span><span>{fmt(totales.directo)}</span></div>
+                                    <div className="flex justify-between text-[10px] font-bold"><span>G.G. ({globalGG}%)</span><span>{fmt(totales.gg)}</span></div>
+                                    <div className="flex justify-between text-[11px] font-black pt-2 border-t"><span>NETO</span><span>{fmt(totales.neto)}</span></div>
+                                    <div className="flex justify-between bg-slate-900 text-white p-4 rounded-2xl mt-4">
+                                        <span className="text-[10px] font-black uppercase">TOTAL</span>
+                                        <span className="text-xl font-black">{fmt(totales.total, 'total')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MODAL MAESTRO */}
+                    {activeModal === 'main' && (
+                        <div className="fixed inset-0 bg-slate-900/80 z-[1000] flex items-center justify-center p-2 backdrop-blur-sm">
+                            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl flex flex-col max-h-[90vh]">
+                                <div className="p-6 border-b flex justify-between items-center">
+                                    <div className="flex gap-4">
+                                        {['config', 'apu', 'gg'].map(t => (
+                                            <button key={t} onClick={()=>setActiveTab(t)} className={`text-[9px] font-black uppercase tracking-widest ${activeTab===t?'text-blue-600 border-b-2 border-blue-600':'text-slate-400'}`}>{t}</button>
+                                        ))}
+                                    </div>
+                                    <button onClick={()=>setActiveModal(null)}><Icons.X /></button>
+                                </div>
+                                <div className="p-6 overflow-y-auto">
+                                    {activeTab === 'apu' && (
+                                        <div className="space-y-4 text-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase">Precio Unitario</p>
+                                            <input type="number" className="text-4xl font-black text-center w-full outline-none" value={items.find(i=>i.id===selectedItemId)?.precio || 0} onChange={e=>updateItem(selectedItemId, 'precio', e.target.value)} />
+                                        </div>
+                                    )}
+                                    {activeTab === 'gg' && (
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black uppercase">Porcentaje Gastos Generales</label>
+                                            <input type="number" className="w-full p-4 bg-slate-50 rounded-xl font-black" value={globalGG} onChange={e=>setGlobalGG(e.target.value)} />
+                                        </div>
+                                    )}
+                                    {activeTab === 'config' && (
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black uppercase">Moneda</label>
+                                            <select className="w-full p-4 bg-slate-50 rounded-xl font-black" value={config.moneda} onChange={e=>setConfig({...config, moneda: e.target.value})}>
+                                                <option>CLP</option>
+                                                <option>USD</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                                <button onClick={()=>setActiveModal(null)} className="m-6 bg-slate-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase">Cerrar y Actualizar</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+

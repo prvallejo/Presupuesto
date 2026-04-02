@@ -17,6 +17,29 @@
 body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3);min-height:100vh}
 .app{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;min-height:100vh}
 
+/* ── ROTATION WARNING ── */
+#rotate-warning {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--navy);
+  color: white;
+  z-index: 9999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+#rotate-warning svg { width: 64px; height: 64px; margin-bottom: 20px; fill: white; }
+#rotate-warning h2 { font-size: 20px; margin-bottom: 10px; }
+#rotate-warning p { font-size: 14px; opacity: 0.8; }
+
+@media screen and (orientation: portrait) and (max-width: 1024px) {
+  #rotate-warning { display: flex; }
+  .app { display: none; }
+}
+
 /* ── HEADER ── */
 .hdr{background:var(--navy);display:flex;flex-wrap:wrap;align-items:center;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(0,0,0,0.3)}
 .hdr-left{display:flex;align-items:center;gap:10px;padding:9px 16px;flex:1;min-width:200px}
@@ -179,6 +202,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 </style>
 </head>
 <body>
+<div id="rotate-warning">
+  <svg viewBox="0 0 24 24"><path d="M23.25 12.77l-2.57-2.57c-.51-.51-1.18-.77-1.85-.77H5.17c-.67 0-1.34.26-1.85.77L.75 12.77c-.51.51-.51 1.34 0 1.85l2.57 2.57c.51.51 1.18.77 1.85.77h13.66c.67 0 1.34-.26 1.85-.77l2.57-2.57c.51-.51.51-1.34 0-1.85zM17.5 15H6.5c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h11c.28 0 .5.22.5.5s-.22.5-.5.5z"/></svg>
+  <h2>Gira tu dispositivo</h2>
+  <p>Para una mejor experiencia en PresAI, por favor usa tu celular o tableta en modo horizontal.</p>
+</div>
+
 <div class="app">
   <header class="hdr no-print">
     <div class="hdr-left">
@@ -446,7 +475,6 @@ function renderGG(){
 function ugg(id,f,v){
   if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
   ggItems=ggItems.map(x=>x.id===id?Object.assign(x,{[f]:v}):x);
-  // Update subtotal in row without re-rendering to avoid flicker
   let row = document.querySelector(`tr:has(input[oninput*="'${id}'"])`);
   if(row){
     let it = ggItems.find(x=>x.id===id);
@@ -509,15 +537,19 @@ function uapu(id,si,ri,f,v){
   if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
   apuData[id].secs[si].rows[ri][f]=v;
   let a=apuData[id], r=a.secs[si].rows[ri];
-  document.getElementById(`sub-${id}-${si}-${ri}`).textContent = fmtP(N(r.qty)*N(r.price));
+  let subEl = document.getElementById(`sub-${id}-${si}-${ri}`);
+  if(subEl) subEl.textContent = fmtP(N(r.qty)*N(r.price));
   let st = a.secs[si].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
-  document.getElementById(`st-${id}-${si}`).textContent = sym()+' '+fmtP(st);
+  let stEl = document.getElementById(`st-${id}-${si}`);
+  if(stEl) stEl.textContent = sym()+' '+fmtP(st);
   let mo=a.secs[0].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
   let pct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
   let lt=a.ls.on?mo*(pct/100):0;
-  document.getElementById(`ls-tot-${id}`).textContent = sym()+' '+fmtP(lt);
+  let lsEl = document.getElementById(`ls-tot-${id}`);
+  if(lsEl) lsEl.textContent = sym()+' '+fmtP(lt);
   let totalApu = a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0) + lt;
-  document.getElementById(`apu-total-${id}`).textContent = 'Precio Unitario Total: '+sym()+' '+fmtP(totalApu);
+  let totEl = document.getElementById(`apu-total-${id}`);
+  if(totEl) totEl.textContent = 'Precio Unitario Total: '+sym()+' '+fmtP(totalApu);
   items.find(x=>x.id===id).price = totalApu;
   rc();markUnsaved();
 }
@@ -557,9 +589,11 @@ function utof(id,ri,f,v){
   if(f==='n'||f==='a'||f==='l') v=N(v.replace(/\./g,'').replace(',','.'));
   tofData[id][ri][f]=v;
   let r=tofData[id][ri];
-  document.getElementById(`tof-sub-${id}-${ri}`).textContent = fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)));
+  let subEl = document.getElementById(`tof-sub-${id}-${ri}`);
+  if(subEl) subEl.textContent = fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)));
   let total = tofData[id].reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
-  document.getElementById(`tof-total-${id}`).textContent = 'Total Cubicidad: '+fmtQ(total)+' '+esc(items.find(x=>x.id===id).unit);
+  let totEl = document.getElementById(`tof-total-${id}`);
+  if(totEl) totEl.textContent = 'Total Cubicidad: '+fmtQ(total)+' '+esc(items.find(x=>x.id===id).unit);
   items.find(x=>x.id===id).qty = total;
   rc();markUnsaved();
 }

@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PresAI Software - Presupuesto de Obras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Barlow', sans-serif; background: #e8edf2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        h1,h2,h3,.font-display { font-family: 'Barlow Condensed', sans-serif; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type="number"] { -moz-appearance: textfield; }
+
+        /* Logo: relleno total */
+        .logo-box img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+
+        /* Scrollbar thin */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 99px; }
+
+        /* Animación modal */
+        .modal-enter { animation: modalIn 0.18s ease; }
+        @keyframes modalIn { from { opacity:0; transform: scale(0.96) translateY(8px); } to { opacity:1; transform: scale(1) translateY(0); } }
+
+        /* Print */
+        @media print {
+            .no-print { display: none !important; }
+            .print-block { display: block !important; }
+            body { background: white; }
+            #presupuesto-doc { box-shadow: none !important; border: none !important; padding: 12mm !important; }
+            .page-break { page-break-before: always; margin-top: 0; }
+        }
+
+        /* Hover row */
+        .item-row:hover .row-actions { opacity: 1; }
+        .row-actions { opacity: 0; transition: opacity 0.15s; }
+
+        /* Focus: borde azul */
+        input:focus { outline: none; border-color: #2563eb !important; }
+
+        /* Watermark */
+        .watermark {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: 0.25em;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            opacity: 0.35;
+            text-align: center;
+            padding: 8px 0 2px;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        /* Pie de página impresión */
+        .footer-print {
+            border-top: 2px solid #e2e8f0;
+            padding-top: 10px;
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo, useRef, useCallback } = React;
+
+/* ─── UTILIDADES ─────────────────────────────────────── */
+const uid = () => Math.random().toString(36).substr(2, 9);
+
+const fmt = (val, decimals = 0) => {
+    if (val === "" || val == null || isNaN(val)) return "";
+    return Number(val).toLocaleString('de-DE', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+};
+
+const numeroALetras = (num, moneda) => {
+    if (!num || num === 0) return `SON: CERO ${moneda === 'CLP' ? 'PESOS' : 'DÓLARES'}.-`;
+    const Unidades = n => ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'][n] || '';
+    const Decenas = n => {
+        if (n < 10) return Unidades(n);
+        if (n < 20) return ['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'][n-10];
+        const d = Math.floor(n/10), u = n%10;
+        const t = ['','','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'][d];
+        return u === 0 ? t : (d === 2 ? 'VEINTI' : t + ' Y ') + Unidades(u);
+    };
+    const Centenas = n => {
+        if (n === 100) return 'CIEN';
+        if (n < 100) return Decenas(n);
+        const c = Math.floor(n/100), r = n%100;
+        const t = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'][c];
+        return r === 0 ? t : t + ' ' + Decenas(r);
+    };
+    const miles = n => {
+        if (n < 1000) return Centenas(n);
+        const m = Math.floor(n/1000), r = n%1000;
+        const t = m === 1 ? 'MIL' : Centenas(m) + ' MIL';
+        return r === 0 ? t : t + ' ' + Centenas(r);
+    };
+    const millones = n => {
+        if (n < 1000000) return miles(n);
+        const m = Math.floor(n/1000000), r = n%1000000;
+        const t = m === 1 ? 'UN MILLÓN' : Centenas(m) + ' MILLONES';
+        return r === 0 ? t : t + ' ' + miles(r);
+    };
+    const entero = Math.floor(Math.abs(num));
+    const centavos = Math.round((Math.abs(num) - entero) * 100);
+    const texto = millones(entero);
+    const sufijo = moneda === 'CLP' ? 'PESOS' : 'DÓLARES';
+    return `SON: ${texto} ${sufijo}${centavos > 0 ? ` CON ${centavos}/100` : ''}.-`;
+};
+
+/* ─── ICONOS SVG ─────────────────────────────────────── */
+const IconSettings = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+);
+const IconX = ({ size = 20 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+);
+const IconPlus = ({ size=14 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+);
+const IconTrash = ({ size=13 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>
+);
+const IconBriefcase = ({ size=17 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="12"/>
+    </svg>
+);
+
+/* ─── MODAL WRAPPER ──────────────────────────────────── */
+const Modal = ({ onClose, children, width = "max-w-lg" }) => (
+    <div className="fixed inset-0 bg-black/70 z-[900] flex items-center justify-center p-3 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+        <div className={`modal-enter bg-white w-full ${width} rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[94vh]`}>
+            {children}
+        </div>
+    </div>
+);
+
+const ModalHeader = ({ title, subtitle, color = "bg-slate-900", onClose, rightSlot }) => (
+    <div className={`${color} text-white px-5 py-4 flex justify-between items-center shrink-0`}>
+        <div>
+            {subtitle && <p className="text-[9px] font-bold uppercase tracking-widest opacity-60 mb-0.5">{subtitle}</p>}
+            <h2 className="font-display font-black text-base uppercase tracking-wide">{title}</h2>
+        </div>
+        <div className="flex items-center gap-2">
+            {rightSlot}
+            <button onClick={onClose} className="opacity-70 hover:opacity-100 transition-opacity"><IconX/></button>
+        </div>
+    </div>
+);
+
+/* ─── APP PRINCIPAL ──────────────────────────────────── */
+function App() {
+    /* Estados principales */
+    const [config, setConfig] = useState({
+        moneda: 'CLP', paridad: 950,
+        decApu: 0, decSub: 0, decTot: 0,
+        printMode: 'presupuesto', // 'presupuesto' | 'con_apu' | 'completo'
+    });
+    const [footer, setFooter] = useState({
+        empresa: 'CONSTRUCTORA SOLIRIAN',
+        celular: '+56 9 1234 5678',
+        correo: 'proyectos@solirian.cl'
+    });
+    const [project, setProject] = useState({
+        obra: 'PROYECTO FOTOVOLTAICO — SOLIRIAN',
+        mandante: 'LIBERTAD65 INVESTMENTS',
+        ubicacion: 'SANTIAGO, CHILE',
+        fecha: new Date().toISOString().split('T')[0]
+    });
+    const [items, setItems] = useState([
+        { id: uid(), type: 'capitulo', nombre: 'OBRAS PREVIAS' },
+        { id: uid(), type: 'partida', nombre: 'Instalación de faenas', unidad: 'GL', cant: 1, precio: 450000 },
+    ]);
+    const [apus, setApus] = useState({});
+    const [cubicaciones, setCubicaciones] = useState({});
+    const [estudioGG, setEstudioGG] = useState([
+        { desc: 'Seguros de Responsabilidad', monto: 120000 },
+        { desc: 'Gastos de administración', monto: 80000 },
+    ]);
+    const [globalGG, setGlobalGG] = useState(15);
+    const [globalUtil, setGlobalUtil] = useState(10);
+    const [logo, setLogo] = useState(null);
+    const [activeModal, setActiveModal] = useState(null);
+    const [selectedId, setSelectedId] = useState(null);
+
+    /* ── Procesamiento numeración y sumas de capítulos ── */
+    const processedItems = useMemo(() => {
+        let capCount = 0, parCount = 0, currentCapId = null;
+        const sums = {};
+        items.forEach(i => {
+            if (i.type === 'capitulo') { currentCapId = i.id; sums[i.id] = 0; }
+            else if (i.type === 'partida' && currentCapId) {
+                sums[currentCapId] = (sums[currentCapId] || 0) + (Number(i.cant) * Number(i.precio));
+            }
+        });
+        return items.map(item => {
+            if (item.type === 'capitulo') {
+                capCount++; parCount = 0;
+                return { ...item, num: capCount.toString().padStart(2,'0'), precioTotal: sums[item.id] || 0 };
+            } else {
+                parCount++;
+                return { ...item, num: `${capCount.toString().padStart(2,'0')}.${parCount}` };
+            }
+        });
+    }, [items]);
+
+    /* ── Totales ── */
+    const totales = useMemo(() => {
+        const directo = items.reduce((acc, i) => i.type === 'partida' ? acc + (Number(i.cant) * Number(i.precio)) : acc, 0);
+        const gg = directo * (Number(globalGG) / 100);
+        const util = directo * (Number(globalUtil) / 100);
+        const neto = directo + gg + util;
+        return { directo, gg, util, neto, iva: neto * 0.19, total: neto * 1.19 };
+    }, [items, globalGG, globalUtil]);
+
+    /* ── Helpers items ── */
+    const updateItem = (id, field, val) => setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+    const deleteItem = (id) => setItems(prev => prev.filter(i => i.id !== id));
+    const addAfter = (idx, type) => {
+        const newItem = type === 'capitulo'
+            ? { id: uid(), type: 'capitulo', nombre: 'NUEVO CAPÍTULO' }
+            : { id: uid(), type: 'partida', nombre: 'Nueva partida', unidad: 'UN', cant: 1, precio: 0 };
+        setItems(prev => { const n = [...prev]; n.splice(idx + 1, 0, newItem); return n; });
+    };
+
+    const fmtC = (v) => fmt(v, config.decApu);
+    const fmtS = (v) => fmt(v, config.decSub);
+    const fmtT = (v) => fmt(v, config.decTot);
+
+    /* ── Export PDF ── */
+    const exportPDF = async () => {
+        const opt = {
+            margin: 6,
+            filename: `Presupuesto_${project.obra.replace(/[^a-zA-Z0-9]/g,'_')}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        await window.html2pdf().from(document.getElementById('presupuesto-doc')).set(opt).save();
+    };
+
+    /* ── GG total estudio ── */
+    const totalGGEstudio = useMemo(() => estudioGG.reduce((a, b) => a + Number(b.monto), 0), [estudioGG]);
+    const ggIncidencia = totales.directo > 0 ? (totalGGEstudio / totales.directo) * 100 : 0;
+
+    /* ════════════════════════════════════════════════
+       MODALES
+    ════════════════════════════════════════════════ */
+
+    /* ── Modal Configuración ── */
+    const ConfigModal = () => (
+        <Modal onClose={() => setActiveModal(null)}>
+            <ModalHeader title="Configuración" subtitle="PresAI Software" color="bg-slate-900" onClose={() => setActiveModal(null)} />
+            <div className="p-5 overflow-y-auto space-y-6">
+
+                {/* Moneda */}
+                <section>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Moneda</p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Moneda</label>
+                            <select className="w-full border border-slate-200 rounded-lg p-2 font-bold text-sm outline-none bg-slate-50" value={config.moneda} onChange={e => setConfig({ ...config, moneda: e.target.value })}>
+                                <option value="CLP">CLP — Peso Chileno</option>
+                                <option value="USD">USD — Dólar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Paridad (T/C)</label>
+                            <input type="number" disabled={config.moneda === 'CLP'} className="w-full border border-slate-200 rounded-lg p-2 font-bold text-sm outline-none bg-slate-50 disabled:opacity-40" value={config.paridad} onChange={e => setConfig({ ...config, paridad: e.target.value })} />
+                        </div>
+                    </div>
+                </section>
+
+                {/* Decimales */}
+                <section className="border-t pt-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Decimales</p>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[['APU / P.Unit', 'decApu'], ['Subtotal', 'decSub'], ['Total', 'decTot']].map(([label, key]) => (
+                            <div key={key}>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">{label}</label>
+                                <input type="number" min="0" max="4" className="w-full border border-slate-200 rounded-lg p-2 font-black text-center text-sm outline-none bg-slate-50" value={config[key]} onChange={e => setConfig({ ...config, [key]: parseInt(e.target.value) || 0 })} />
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Opciones impresión */}
+                <section className="border-t pt-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Opciones de Impresión PDF</p>
+                    <div className="space-y-2">
+                        {[
+                            ['presupuesto', 'Solo Presupuesto'],
+                            ['con_apu', 'Presupuesto + Anexo APU'],
+                            ['completo', 'Presupuesto + APU + Cubicaciones'],
+                        ].map(([val, label]) => (
+                            <label key={val} className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${config.printMode === val ? 'border-blue-500 bg-blue-50' : 'border-slate-100 bg-slate-50 hover:border-slate-300'}`}>
+                                <input type="radio" className="accent-blue-600" checked={config.printMode === val} onChange={() => setConfig({ ...config, printMode: val })} />
+                                <span className="text-sm font-bold text-slate-700">{label}</span>
+                            </label>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Pie de página */}
+                <section className="border-t pt-4">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Pie de Página</p>
+                    <div className="space-y-3">
+                        <div>
+                            <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Nombre Empresa (ancho completo)</label>
+                            <input className="w-full border border-slate-200 rounded-lg p-2 font-black text-sm uppercase outline-none bg-slate-50" value={footer.empresa} onChange={e => setFooter({ ...footer, empresa: e.target.value })} placeholder="NOMBRE EMPRESA" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Celular</label>
+                                <input className="w-full border border-slate-200 rounded-lg p-2 font-bold text-sm outline-none bg-slate-50" value={footer.celular} onChange={e => setFooter({ ...footer, celular: e.target.value })} placeholder="+56 9 ..." />
+                            </div>
+                            <div>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase block mb-1">Correo electrónico</label>
+                                <input className="w-full border border-slate-200 rounded-lg p-2 font-bold text-sm outline-none bg-slate-50" value={footer.correo} onChange={e => setFooter({ ...footer, correo: e.target.value })} placeholder="email@..." />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div className="p-4 border-t">
+                <button onClick={() => setActiveModal(null)} className="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-700 transition-colors">Guardar Configuración</button>
+            </div>
+        </Modal>
+    );
+
+    /* ── Modal Gastos Generales ── */
+    const GGModal = () => {
+        const [rows, setRows] = useState(estudioGG);
+        const tot = rows.reduce((a, b) => a + Number(b.monto), 0);
+        const perc = totales.directo > 0 ? (tot / totales.directo) * 100 : 0;
+        const updateRow = (i, field, val) => { const n = [...rows]; n[i] = { ...n[i], [field]: val }; setRows(n); };
+
+        return (
+            <Modal onClose={() => setActiveModal(null)}>
+                <ModalHeader title="Estudio Gastos Generales" subtitle="Análisis de incidencia" color="bg-blue-700" onClose={() => setActiveModal(null)} />
+                <div className="p-4 overflow-y-auto flex-1">
+                    <div className="grid grid-cols-2 gap-3 mb-5">
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Total G.G.</p>
+                            <p className="text-xl font-black text-blue-900">{config.moneda} {fmt(tot, config.decTot)}</p>
+                        </div>
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-center">
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">% sobre Directo</p>
+                            <p className="text-xl font-black text-blue-900">{perc.toFixed(2)}%</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        {rows.map((g, i) => (
+                            <div key={i} className="flex gap-2 items-center border-b pb-2">
+                                <input className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold uppercase outline-none" value={g.desc} onChange={e => updateRow(i, 'desc', e.target.value)} placeholder="Descripción..." />
+                                <input type="number" className="w-28 text-right bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-black outline-none" value={g.monto} onChange={e => updateRow(i, 'monto', e.target.value)} />
+                                <button onClick={() => setRows(rows.filter((_, idx) => idx !== i))} className="text-red-400 hover:text-red-600 transition-colors"><IconTrash /></button>
+                            </div>
+                        ))}
+                        <button onClick={() => setRows([...rows, { desc: '', monto: 0 }])} className="text-[10px] font-black text-blue-600 uppercase mt-2 hover:underline">+ Agregar ítem</button>
+                    </div>
+                </div>
+                <div className="p-4 border-t">
+                    <button onClick={() => { setEstudioGG(rows); setGlobalGG(perc.toFixed(2)); setActiveModal(null); }} className="w-full bg-blue-700 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-800 transition-colors">
+                        Aplicar {perc.toFixed(2)}% al Presupuesto
+                    </button>
+                </div>
+            </Modal>
+        );
+    };
+
+    /* ── Modal Cubicación ── */
+    const CubicarModal = () => {
+        const p = items.find(i => i.id === selectedId);
+        if (!p) return null;
+        const [rows, setRows] = useState(cubicaciones[selectedId] || [{ d: 'Eje 1', n: 1, l: 0, a: 0, h: 0 }]);
+        const updateRow = (i, field, val) => { const n = [...rows]; n[i] = { ...n[i], [field]: val }; setRows(n); };
+        const total = rows.reduce((acc, x) => acc + Number(x.n) * (Number(x.l) || 1) * (Number(x.a) || 1) * (Number(x.h) || 1), 0);
+
+        return (
+            <Modal onClose={() => setActiveModal(null)} width="max-w-2xl">
+                <ModalHeader title={p.nombre} subtitle="Cubicación" color="bg-slate-800" onClose={() => setActiveModal(null)} />
+                <div className="overflow-auto flex-1">
+                    <table className="w-full text-xs border-collapse">
+                        <thead>
+                            <tr className="bg-slate-100 text-[9px] font-black uppercase text-slate-500">
+                                <th className="p-2 text-left pl-4">Detalle</th>
+                                <th className="p-2 w-12 text-center">N</th>
+                                <th className="p-2 w-16 text-center">Largo</th>
+                                <th className="p-2 w-16 text-center">Ancho</th>
+                                <th className="p-2 w-16 text-center">Alto</th>
+                                <th className="p-2 w-20 text-right pr-4">Subtotal</th>
+                                <th className="p-2 w-8"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((x, i) => {
+                                const sub = Number(x.n) * (Number(x.l)||1) * (Number(x.a)||1) * (Number(x.h)||1);
+                                return (
+                                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                                        <td className="p-1.5 pl-4"><input className="w-full uppercase text-xs font-bold bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 pb-0.5" value={x.d} onChange={e => updateRow(i, 'd', e.target.value)} /></td>
+                                        {['n','l','a','h'].map(f => (
+                                            <td key={f} className="p-1.5"><input type="number" className="w-full text-center text-xs font-black bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 pb-0.5" value={x[f]} onFocus={e => { if(e.target.value === '0') e.target.value = ''; }} onChange={e => updateRow(i, f, e.target.value)} /></td>
+                                        ))}
+                                        <td className="p-1.5 pr-4 text-right font-black text-slate-800">{fmt(sub, 2)}</td>
+                                        <td className="p-1.5"><button onClick={() => setRows(rows.filter((_,idx) => idx !== i))} className="text-red-300 hover:text-red-500"><IconTrash /></button></td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    <div className="p-3 pl-4">
+                        <button onClick={() => setRows([...rows, { d: '', n: 1, l: 0, a: 0, h: 0 }])} className="text-[10px] font-black text-blue-600 uppercase hover:underline">+ Añadir fila</button>
+                    </div>
+                </div>
+                <div className="p-4 bg-slate-50 border-t flex justify-between items-center">
+                    <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Cubicación</p>
+                        <p className="text-xl font-black text-slate-900">{fmt(total, 2)} <span className="text-sm font-bold text-slate-500">{p.unidad}</span></p>
+                    </div>
+                    <button onClick={() => { setCubicaciones({ ...cubicaciones, [selectedId]: rows }); updateItem(selectedId, 'cant', total); setActiveModal(null); }} className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-xs uppercase hover:bg-slate-700 transition-colors">Confirmar</button>
+                </div>
+            </Modal>
+        );
+    };
+
+    /* ── Modal APU ── */
+    const ApuModal = () => {
+        const p = items.find(i => i.id === selectedId);
+        if (!p) return null;
+        const defaultApu = { mat: [], mo: [], eq: [], ls: 30 };
+        const [apu, setApu] = useState(apus[selectedId] || defaultApu);
+
+        const calcTotal = (a) => {
+            const m = (a.mat||[]).reduce((s,r) => s + Number(r.c)*Number(r.p), 0);
+            const mo = (a.mo||[]).reduce((s,r) => s + Number(r.c)*Number(r.p), 0);
+            const eq = (a.eq||[]).reduce((s,r) => s + Number(r.c)*Number(r.p), 0);
+            return m + mo + (mo * Number(a.ls) / 100) + eq;
+        };
+
+        const addRow = (sec) => setApu({ ...apu, [sec]: [...(apu[sec]||[]), { d:'', u:'UN', c:1, p:0 }] });
+        const updateRow = (sec, i, field, val) => {
+            const rows = [...(apu[sec]||[])];
+            rows[i] = { ...rows[i], [field]: val };
+            setApu({ ...apu, [sec]: rows });
+        };
+        const delRow = (sec, i) => setApu({ ...apu, [sec]: (apu[sec]||[]).filter((_,idx) => idx !== i) });
+
+        const sections = [
+            { id: 'mat', label: 'Materiales', color: 'text-emerald-700', bg: 'bg-emerald-50' },
+            { id: 'mo',  label: 'Mano de Obra', color: 'text-blue-700', bg: 'bg-blue-50' },
+            { id: 'eq',  label: 'Herramientas y Equipos', color: 'text-orange-700', bg: 'bg-orange-50' },
+        ];
+
+        const lsTotal = (apu.mo||[]).reduce((s,r) => s + Number(r.c)*Number(r.p), 0) * Number(apu.ls) / 100;
+
+        return (
+            <Modal onClose={() => setActiveModal(null)} width="max-w-3xl">
+                <ModalHeader title={p.nombre} subtitle="Análisis de Precio Unitario — APU" color="bg-orange-600" onClose={() => setActiveModal(null)} />
+                <div className="p-4 overflow-y-auto flex-1 space-y-4">
+                    {sections.map(sec => (
+                        <div key={sec.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                            <div className={`${sec.bg} px-3 py-2 flex justify-between items-center`}>
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${sec.color}`}>{sec.label}</span>
+                                <button onClick={() => addRow(sec.id)} className={`${sec.color} font-black text-lg leading-none hover:opacity-70 transition-opacity`}><IconPlus size={16}/></button>
+                            </div>
+                            <table className="w-full text-[10px]">
+                                <thead className="bg-slate-50 border-b text-[8px] uppercase font-black text-slate-400">
+                                    <tr><th className="p-2 text-left">Descripción</th><th className="p-2 w-12 text-center">Unid</th><th className="p-2 w-16 text-center">Cant</th><th className="p-2 w-24 text-right">P.U.</th><th className="p-2 w-8"></th></tr>
+                                </thead>
+                                <tbody>
+                                    {(apu[sec.id]||[]).length === 0 && (
+                                        <tr><td colSpan={5} className="p-3 text-center text-slate-300 text-[9px] italic">Sin insumos — usa + para agregar</td></tr>
+                                    )}
+                                    {(apu[sec.id]||[]).map((r, i) => (
+                                        <tr key={i} className="border-t border-slate-50 hover:bg-slate-50">
+                                            <td className="p-1.5"><input className="w-full uppercase bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 text-[10px] font-bold" value={r.d} onChange={e => updateRow(sec.id, i, 'd', e.target.value)} /></td>
+                                            <td className="p-1.5"><input className="w-full text-center uppercase bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 text-[10px] font-bold" value={r.u} onChange={e => updateRow(sec.id, i, 'u', e.target.value)} /></td>
+                                            <td className="p-1.5"><input type="number" className="w-full text-center bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 text-[10px] font-bold" value={r.c} onFocus={e=>{if(e.target.value==='0')e.target.value='';}} onChange={e => updateRow(sec.id, i, 'c', e.target.value)} /></td>
+                                            <td className="p-1.5"><input type="number" className="w-full text-right bg-transparent border-b border-slate-200 outline-none focus:border-blue-400 text-[10px] font-black text-blue-700" value={r.p} onFocus={e=>{if(e.target.value==='0')e.target.value='';}} onChange={e => updateRow(sec.id, i, 'p', e.target.value)} /></td>
+                                            <td className="p-1.5"><button onClick={() => delRow(sec.id, i)} className="text-red-300 hover:text-red-500"><IconTrash /></button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
+
+                    {/* Leyes Sociales */}
+                    <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                        <div>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-amber-700">Leyes Sociales</p>
+                            <p className="text-[10px] text-amber-600 font-medium">(sobre Mano de Obra) = {config.moneda} {fmt(lsTotal, config.decApu)}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <input type="number" className="w-16 text-center font-black text-lg border-2 border-amber-300 rounded-lg p-1 outline-none bg-white" value={apu.ls} onFocus={e=>{if(e.target.value==='0')e.target.value='';}} onChange={e => setApu({ ...apu, ls: e.target.value })} />
+                            <span className="font-black text-amber-700 text-lg">%</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer APU */}
+                <div className="p-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                    <div>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-slate-400">P.U. Total ({config.moneda})</p>
+                        <p className="text-2xl font-black font-display">{fmt(calcTotal(apu), config.decApu)}</p>
+                    </div>
+                    <button onClick={() => { setApus({ ...apus, [selectedId]: apu }); updateItem(selectedId, 'precio', calcTotal(apu)); setActiveModal(null); }} className="bg-blue-600 hover:bg-blue-500 transition-colors px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg">Guardar APU →</button>
+                </div>
+            </Modal>
+        );
+    };
+
+    /* ════════════════════════════════════════════════
+       RENDER PRINCIPAL
+    ════════════════════════════════════════════════ */
+    return (
+        <div className="min-h-screen bg-slate-200">
+            {/* ── NAVBAR ── */}
+            <nav className="no-print bg-slate-950 text-white px-4 py-2.5 sticky top-0 z-[800] flex justify-between items-center shadow-2xl">
+                <div className="flex items-center gap-2">
+                    {/* Configuración ⚙️ */}
+                    <button title="Configuración" onClick={() => setActiveModal('config')} className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded-lg text-slate-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">
+                        <IconSettings /> Configurar
+                    </button>
+                    {/* Gastos Generales 💼 */}
+                    <button title="Estudio Gastos Generales" onClick={() => setActiveModal('gg')} className="flex items-center gap-1.5 bg-blue-900 hover:bg-blue-800 px-3 py-2 rounded-lg text-blue-300 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest">
+                        <IconBriefcase /> G.Generales
+                    </button>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest hidden md:block">PresAI Software</span>
+                    <button onClick={exportPDF} className="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-900/40 transition-all">
+                        Exportar PDF
+                    </button>
+                </div>
+            </nav>
+
+            {/* ── DOCUMENTO ── */}
+            <div className="flex justify-center p-3 md:p-8">
+                <div id="presupuesto-doc" className="w-full max-w-[210mm] bg-white shadow-2xl flex flex-col" style={{padding:'32px 36px 24px'}}>
+
+                    {/* ═══ HEADER ═══ */}
+                    <div className="flex justify-between items-start pb-6 mb-6 border-b-4 border-slate-900 gap-6">
+                        {/* Columna izquierda */}
+                        <div className="flex-1 space-y-3">
+                            {/* Logo */}
+                            <div className="no-print logo-box w-28 h-28 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl overflow-hidden relative hover:border-blue-400 transition-colors group cursor-pointer">
+                                {logo
+                                    ? <img src={logo} className="w-full h-full object-cover" alt="Logo" />
+                                    : <div className="w-full h-full flex flex-col items-center justify-center text-[8px] font-black text-slate-400 uppercase gap-1">
+                                        <span className="text-2xl">📷</span>
+                                        <span>Logo</span>
+                                    </div>
+                                }
+                                <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" onChange={e => { const r = new FileReader(); r.onload = x => setLogo(x.target.result); r.readAsDataURL(e.target.files[0]); }} />
+                            </div>
+                            {logo && <img src={logo} className="hidden print:block w-28 h-28 object-cover rounded-xl mb-2" alt="Logo" />}
+
+                            <div>
+                                <input className="w-full font-display font-black text-xl uppercase text-slate-900 outline-none border-b-2 border-transparent hover:border-slate-200 focus:border-blue-400 transition-colors bg-transparent pb-0.5"
+                                    value={project.obra} onFocus={e => { if(e.target.value.includes('PROYECTO')) e.target.select(); }} onChange={e => setProject({ ...project, obra: e.target.value })} />
+                                <input className="w-full text-[10px] font-bold uppercase text-slate-500 outline-none border-b border-transparent hover:border-slate-200 focus:border-blue-300 transition-colors bg-transparent mt-1"
+                                    value={project.mandante} onFocus={e => e.target.select()} onChange={e => setProject({ ...project, mandante: e.target.value })} />
+                                <input className="w-full text-[10px] font-bold uppercase text-slate-400 outline-none border-b border-transparent hover:border-slate-200 focus:border-blue-300 transition-colors bg-transparent"
+                                    value={project.ubicacion} onFocus={e => e.target.select()} onChange={e => setProject({ ...project, ubicacion: e.target.value })} />
+                            </div>
+                        </div>
+
+                        {/* Columna derecha */}
+                        <div className="text-right shrink-0">
+                            <h1 className="font-display font-black text-4xl italic text-slate-900 tracking-tighter leading-none">PRES<span className="text-blue-600">AI</span></h1>
+                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.3em] mt-0.5">Software de Presupuesto</p>
+                            <div className="mt-6 text-right">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Fecha</p>
+                                <input type="date" className="text-xs font-black text-right bg-transparent outline-none border-b border-transparent hover:border-slate-200 focus:border-blue-300 transition-colors" value={project.fecha} onChange={e => setProject({ ...project, fecha: e.target.value })} />
+                            </div>
+                            <div className="mt-3">
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Moneda</p>
+                                <p className="text-sm font-black text-slate-700">{config.moneda}{config.moneda === 'USD' ? ` (${config.paridad})` : ''}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ═══ TABLA PARTIDAS ═══ */}
+                    <table className="w-full border-collapse text-[10px]">
+                        <thead>
+                            <tr className="bg-slate-900 text-white font-black uppercase text-[8px] tracking-wide">
+                                <th className="p-2.5 text-left w-[7%]">Ítem</th>
+                                <th className="p-2.5 text-left">Descripción</th>
+                                <th className="p-2.5 text-center w-[7%]">Uni</th>
+                                <th className="p-2.5 text-right w-[10%]">Cant</th>
+                                <th className="p-2.5 text-right w-[14%]">P.Unit ({config.moneda})</th>
+                                <th className="p-2.5 text-right w-[15%]">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {processedItems.map((item, idx) => (
+                                <tr key={item.id} className={`item-row border-b transition-colors ${item.type === 'capitulo' ? 'bg-slate-100 border-slate-300' : 'border-slate-100 hover:bg-blue-50/30'}`}>
+
+                                    {/* Ítem */}
+                                    <td className="p-2 font-bold text-slate-400 text-[9px]">{item.num}</td>
+
+                                    {/* Descripción + acciones */}
+                                    <td className="p-1.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                className={`flex-1 bg-transparent outline-none border-b border-transparent hover:border-slate-300 focus:border-blue-400 transition-colors uppercase pb-0.5 ${item.type === 'capitulo' ? 'font-black text-[11px] text-slate-900' : 'font-bold text-slate-700'}`}
+                                                value={item.nombre}
+                                                onFocus={e => { if(e.target.value === 'NUEVO CAPÍTULO' || e.target.value === 'Nueva partida') e.target.select(); }}
+                                                onChange={e => updateItem(item.id, 'nombre', e.target.value)}
+                                            />
+                                            {/* Acciones */}
+                                            <div className="no-print row-actions flex items-center gap-0.5">
+                                                {item.type === 'capitulo' && (
+                                                    <button title="Añadir capítulo después" onClick={() => addAfter(idx, 'capitulo')} className="p-1 bg-slate-200 hover:bg-slate-300 rounded text-slate-600 transition-colors"><IconPlus /></button>
+                                                )}
+                                                <button title={`Añadir partida después`} onClick={() => addAfter(idx, 'partida')} className="p-1 bg-blue-100 hover:bg-blue-200 rounded text-blue-700 transition-colors"><IconPlus /></button>
+                                                <button title="Eliminar" onClick={() => deleteItem(item.id)} className="p-1 bg-red-50 hover:bg-red-100 rounded text-red-400 hover:text-red-600 transition-colors"><IconTrash /></button>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                    {/* Unidad */}
+                                    <td className="p-1.5 text-center">
+                                        {item.type === 'partida' && (
+                                            <input className="w-full text-center bg-transparent outline-none text-[9px] font-black uppercase border-b border-transparent hover:border-slate-300 focus:border-blue-400 transition-colors pb-0.5" value={item.unidad || ''} onFocus={e => e.target.select()} onChange={e => updateItem(item.id, 'unidad', e.target.value)} />
+                                        )}
+                                    </td>
+
+                                    {/* Cantidad + 🧱 */}
+                                    <td className="p-1.5 text-right">
+                                        {item.type === 'partida' && (
+                                            <div className="flex items-center justify-end gap-1">
+                                                <input type="number" className="w-full text-right bg-transparent outline-none font-black border-b border-transparent hover:border-slate-300 focus:border-blue-400 transition-colors pb-0.5" value={item.cant} onFocus={e => { if(e.target.value === '0') e.target.value = ''; }} onChange={e => updateItem(item.id, 'cant', e.target.value)} />
+                                                <button title="Cubicar" className="no-print text-base hover:scale-125 transition-transform leading-none" onClick={() => { setSelectedId(item.id); setActiveModal('cubicar'); }}>🧱</button>
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    {/* P.Unit / Subtotal capítulo + 💵 */}
+                                    <td className="p-1.5 text-right">
+                                        {item.type === 'capitulo' ? (
+                                            <span className="font-black text-slate-500 text-[9px]">{fmtC(item.precioTotal)}</span>
+                                        ) : (
+                                            <div className="flex items-center justify-end gap-1">
+                                                <input type="number" className="w-full text-right bg-transparent outline-none font-black text-blue-700 border-b border-transparent hover:border-slate-300 focus:border-blue-400 transition-colors pb-0.5" value={item.precio} onFocus={e => { if(e.target.value === '0') e.target.value = ''; }} onChange={e => updateItem(item.id, 'precio', e.target.value)} />
+                                                <button title="Análisis APU" className="no-print text-base hover:scale-125 transition-transform leading-none" onClick={() => { setSelectedId(item.id); setActiveModal('apu'); }}>💵</button>
+                                            </div>
+                                        )}
+                                    </td>
+
+                                    {/* Subtotal */}
+                                    <td className="p-1.5 text-right font-black text-slate-900">
+                                        {item.type === 'partida'
+                                            ? fmtS(Number(item.cant) * Number(item.precio))
+                                            : fmtS(item.precioTotal)
+                                        }
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Botón agregar al final */}
+                    <div className="no-print flex gap-2 mt-3">
+                        <button onClick={() => addAfter(items.length - 1, 'capitulo')} className="flex items-center gap-1 text-[9px] font-black uppercase text-slate-500 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-lg px-3 py-1.5 transition-all"><IconPlus /> Capítulo</button>
+                        <button onClick={() => addAfter(items.length - 1, 'partida')} className="flex items-center gap-1 text-[9px] font-black uppercase text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded-lg px-3 py-1.5 transition-all"><IconPlus /> Partida</button>
+                    </div>
+
+                    {/* ═══ TOTALES ═══ */}
+                    <div className="mt-8 flex justify-end border-t-4 border-slate-900 pt-5">
+                        <div className="w-72 space-y-1.5">
+                            {/* Costo Directo */}
+                            <div className="flex justify-between text-[11px] font-black text-slate-500 uppercase">
+                                <span>Costo Directo</span>
+                                <span>{config.moneda} {fmtT(totales.directo)}</span>
+                            </div>
+
+                            {/* Gastos Generales */}
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 uppercase border-b border-slate-100 pb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span>G. Generales</span>
+                                    <div className="no-print flex items-center gap-1">
+                                        <input type="number" className="w-10 bg-slate-100 text-center font-black rounded text-[10px] outline-none border border-slate-200 py-0.5" value={globalGG} onFocus={e => e.target.select()} onChange={e => setGlobalGG(e.target.value)} />
+                                        <span className="text-slate-500 font-black">%</span>
+                                        <button title="Estudio G.G." onClick={() => setActiveModal('gg')} className="ml-0.5 hover:scale-125 transition-transform"><IconBriefcase size={13}/></button>
+                                    </div>
+                                    <span className="print:inline hidden text-slate-400">({globalGG}%)</span>
+                                </div>
+                                <span>{fmtT(totales.gg)}</span>
+                            </div>
+
+                            {/* Utilidades */}
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-600 uppercase border-b border-slate-100 pb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                    <span>Utilidades</span>
+                                    <div className="no-print flex items-center gap-1">
+                                        <input type="number" className="w-10 bg-slate-100 text-center font-black rounded text-[10px] outline-none border border-slate-200 py-0.5" value={globalUtil} onFocus={e => e.target.select()} onChange={e => setGlobalUtil(e.target.value)} />
+                                        <span className="text-slate-500 font-black">%</span>
+                                    </div>
+                                    <span className="print:inline hidden text-slate-400">({globalUtil}%)</span>
+                                </div>
+                                <span>{fmtT(totales.util)}</span>
+                            </div>
+
+                            {/* Neto */}
+                            <div className="flex justify-between text-[11px] font-black bg-slate-900 text-white px-3 py-2.5 rounded-xl mt-2 uppercase tracking-widest shadow">
+                                <span>Neto</span>
+                                <span>{fmtT(totales.neto)}</span>
+                            </div>
+
+                            {/* IVA */}
+                            <div className="flex justify-between text-[9px] font-bold text-slate-400 px-1 uppercase">
+                                <span>IVA 19%</span>
+                                <span>{fmtT(totales.iva)}</span>
+                            </div>
+
+                            {/* Total */}
+                            <div className="flex justify-between items-end border-t-2 border-slate-900 pt-3 mt-2">
+                                <span className="font-display font-black text-[13px] text-blue-700 uppercase tracking-wide">Total Presupuesto</span>
+                                <span className="font-display font-black text-2xl text-slate-900 leading-none">{config.moneda} {fmtT(totales.total)}</span>
+                            </div>
+
+                            {/* En palabras */}
+                            <p className="text-[7.5px] text-right font-bold italic text-slate-500 leading-snug pt-1">
+                                {numeroALetras(totales.total, config.moneda)}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* ═══ PIE DE PÁGINA ═══ */}
+                    <div className="footer-print mt-10">
+                        <p className="text-center font-display font-black text-sm uppercase tracking-[0.3em] text-slate-700">{footer.empresa}</p>
+                        <div className="flex justify-center items-center gap-3 mt-1 flex-wrap">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">{footer.celular}</span>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-[9px] font-bold text-blue-500">{footer.correo}</span>
+                        </div>
+                    </div>
+
+                    {/* ═══ WATERMARK ═══ */}
+                    <div className="watermark mt-6">PresAI — Software de Presupuesto de Obras</div>
+
+                    {/* ═══ ANEXO APU (solo si printMode lo incluye) ═══ */}
+                    {(config.printMode === 'con_apu' || config.printMode === 'completo') && (
+                        <div className="page-break hidden print:block pt-8">
+                            <h2 className="font-display font-black text-2xl italic border-b-4 border-slate-900 pb-3 mb-6 uppercase">Anexo 1 — Análisis de Precios Unitarios</h2>
+                            {processedItems.filter(i => i.type === 'partida' && apus[i.id]).map(item => {
+                                const a = apus[item.id];
+                                const mTotal = (a.mat||[]).reduce((s,r)=>s+Number(r.c)*Number(r.p),0);
+                                const moTotal = (a.mo||[]).reduce((s,r)=>s+Number(r.c)*Number(r.p),0);
+                                const eqTotal = (a.eq||[]).reduce((s,r)=>s+Number(r.c)*Number(r.p),0);
+                                const lsTotal = moTotal * Number(a.ls) / 100;
+                                return (
+                                    <div key={item.id} className="mb-6 border border-slate-200 rounded-xl overflow-hidden">
+                                        <div className="bg-slate-100 px-3 py-2 font-black text-[10px] uppercase flex justify-between">
+                                            <span>{item.num} — {item.nombre}</span>
+                                            <span>{config.moneda} {fmt(item.precio, config.decApu)} / {item.unidad}</span>
+                                        </div>
+                                        <table className="w-full text-[9px]">
+                                            <thead className="bg-slate-50 border-b"><tr><th className="p-1.5 text-left pl-3">Recurso</th><th className="p-1.5 text-center">Unid</th><th className="p-1.5 text-right">Cant</th><th className="p-1.5 text-right pr-3">P.U.</th></tr></thead>
+                                            <tbody>
+                                                {[['mat','Materiales'],['mo','Mano de Obra'],['eq','Equipos']].map(([sec, label]) =>
+                                                    (a[sec]||[]).map((r, i) => (
+                                                        <tr key={`${sec}${i}`} className="border-t border-slate-50">
+                                                            <td className="p-1.5 pl-3">{r.d}</td>
+                                                            <td className="p-1.5 text-center">{r.u}</td>
+                                                            <td className="p-1.5 text-right">{r.c}</td>
+                                                            <td className="p-1.5 text-right pr-3">{fmt(r.p, config.decApu)}</td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                                <tr className="border-t border-slate-200 bg-amber-50">
+                                                    <td className="p-1.5 pl-3 font-black uppercase text-[8px]">Leyes Sociales ({a.ls}%)</td>
+                                                    <td colSpan={2}></td>
+                                                    <td className="p-1.5 pr-3 text-right font-black">{fmt(lsTotal, config.decApu)}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* ═══ ANEXO CUBICACIONES ═══ */}
+                    {config.printMode === 'completo' && (
+                        <div className="page-break hidden print:block pt-8">
+                            <h2 className="font-display font-black text-2xl italic border-b-4 border-slate-900 pb-3 mb-6 uppercase">Anexo 2 — Memoria de Cubicaciones</h2>
+                            {processedItems.filter(i => i.type === 'partida' && cubicaciones[i.id]).map(item => (
+                                <div key={item.id} className="mb-5 border border-slate-200 rounded-xl overflow-hidden">
+                                    <div className="bg-slate-100 px-3 py-2 font-black text-[10px] uppercase flex justify-between">
+                                        <span>{item.num} — {item.nombre}</span>
+                                        <span>TOTAL: {fmt(item.cant, 2)} {item.unidad}</span>
+                                    </div>
+                                    <table className="w-full text-[9px] text-center">
+                                        <thead className="bg-slate-50 border-b text-[8px] font-black uppercase"><tr><th className="p-1.5 text-left pl-3">Detalle</th><th className="p-1.5">N</th><th className="p-1.5">Largo</th><th className="p-1.5">Ancho</th><th className="p-1.5 pr-3">Alto</th></tr></thead>
+                                        <tbody>
+                                            {(cubicaciones[item.id]||[]).map((r,i)=>(
+                                                <tr key={i} className="border-t border-slate-50"><td className="p-1.5 pl-3 text-left">{r.d}</td><td>{r.n}</td><td>{r.l}</td><td>{r.a}</td><td className="pr-3">{r.h}</td></tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                </div>
+            </div>
+
+            {/* ── MODALES ── */}
+            {activeModal === 'config'  && <ConfigModal />}
+            {activeModal === 'gg'      && <GGModal />}
+            {activeModal === 'cubicar' && selectedId && <CubicarModal />}
+            {activeModal === 'apu'     && selectedId && <ApuModal />}
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

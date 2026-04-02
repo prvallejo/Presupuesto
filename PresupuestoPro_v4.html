@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>PresupuestoPro v4</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ff:'IBM Plex Sans',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+  --navy:#1e3a5f;
+  --navy-lt:#e8eef7;
+  --amber:#b45309;
+  --amber-lt:#fffbeb;
+  --red:#991b1b;
+  --red-lt:#fef2f2;
+  --border:#e2e8f0;
+  --border2:#cbd5e1;
+  --bg:#ffffff;
+  --bg2:#f8fafc;
+  --bg3:#f1f5f9;
+  --txt:#0f172a;
+  --txt2:#64748b;
+  --txt3:#94a3b8;
+}
+body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3);min-height:100vh}
+/* PUNTO 2: FORZAR LANDSCAPE EN MÓVILES */
+@media screen and (max-width:700px) and (orientation:portrait){
+  body::before{
+    content:"📐  Gira el dispositivo para ver mejor PresupuestoPro";
+    display:flex;align-items:center;justify-content:center;text-align:center;
+    position:fixed;inset:0;background:var(--navy);color:#fff;font-size:15px;font-weight:600;
+    padding:24px;z-index:9999;line-height:1.6;
+  }
+}
+.app{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;min-height:100vh}
+/* HEADER */
+.hdr{background:var(--navy);display:flex;align-items:stretch;position:sticky;top:0;z-index:50;box-shadow:0 2px 10px rgba(0,0,0,0.3)}
+.hdr-left{display:flex;align-items:center;gap:12px;padding:10px 18px;flex:1}
+.hdr-logo-wrap{width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;border:1px solid rgba(255,255,255,0.2);flex-shrink:0}
+.hdr-logo-wrap img{width:100%;height:100%;object-fit:cover}
+.hdr-logo-wrap svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.5;stroke-linecap:round}
+.hdr-txt .name{font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.hdr-txt .name span{color:#93c5fd}
+.hdr-txt .sub{font-size:10px;color:rgba(255,255,255,0.55);font-family:var(--mono)}
+.hdr-right{display:flex;align-items:center;gap:5px;padding:0 14px;border-left:1px solid rgba(255,255,255,0.12)}
+.hbtn{height:32px;padding:0 10px;border:1px solid rgba(255,255,255,0.22);border-radius:6px;background:rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;gap:5px;color:rgba(255,255,255,0.85);font-size:11px;font-family:var(--ff);font-weight:500;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,0.2);color:#fff}
+.hbtn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0}
+/* TABS */
+.tabs{background:var(--bg);border-bottom:1px solid var(--border);display:flex;padding:0 16px;overflow-x:auto}
+.tab{padding:10px 14px;font-size:11px;font-weight:500;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+.tab.on{color:var(--navy);border-bottom-color:var(--navy)}
+.tab:hover:not(.on){color:var(--txt);background:var(--bg2)}
+/* CONTENT */
+.content{flex:1;padding:14px 18px}
+.pnl{display:none}.pnl.on{display:block}
+/* PROJ BAR */
+.proj-bar{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:13px 16px;margin-bottom:12px;display:grid;grid-template-columns:2fr 2fr 2fr 1fr;gap:14px}
+.pf label{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.7px;display:block;margin-bottom:3px}
+.pf input{font-size:12px;color:var(--txt);background:transparent;border:none;border-bottom:1px solid var(--border);width:100%;outline:none;padding:3px 0;font-family:var(--ff)}
+.pf input:focus{border-bottom-color:var(--navy)}
+/* BUDGET TABLE */
+.tbl-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+/* PUNTO 1: columna acciones más ancha para +C +P X */
+.tbl-hdr{display:grid;grid-template-columns:62px 1fr 56px 84px 110px 110px 112px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 10px}
+.tbl-hdr span{padding:8px 4px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.6px}
+.tbl-hdr .r{text-align:right}
+.row-ch,.row-it{display:grid;border-bottom:1px solid var(--border);padding:0 10px}
+.row-ch{grid-template-columns:62px 1fr 56px 84px 110px 110px 112px;background:rgba(30,58,95,0.04);border-bottom:1px solid var(--border2)}
+.row-it{grid-template-columns:62px 1fr 56px 84px 110px 110px 112px}
+.row-it:hover{background:#fafbff}
+.row-ch:hover{background:rgba(30,58,95,0.07)}
+.ri{font-family:var(--ff);font-size:12px;color:var(--txt);background:transparent;border:none;outline:none;width:100%;padding:7px 4px}
+.ri.mono{font-family:var(--mono)}
+.ri.r{text-align:right}
+.ri.ch{font-weight:600;color:var(--navy)}
+/* PUNTO 3: separador miles */
+.ri.num-fmt{font-family:var(--mono);text-align:right}
+.span-tot{padding:7px 4px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.span-ch-tot{padding:7px 4px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--navy)}
+/* PUNTO 1: acciones con +C +P X */
+.span-acts{display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:3px 0}
+.tbl-add{padding:8px 12px;display:flex;gap:6px;background:var(--bg2);border-top:1px solid var(--border)}
+/* BUTTONS */
+.bs{font-family:var(--ff);font-size:10px;font-weight:500;padding:4px 8px;border-radius:5px;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--txt2);line-height:1.4;white-space:nowrap}
+.bs:hover{background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.bs.del{border:none;font-size:15px;line-height:1;padding:2px 4px;background:none;color:var(--txt3)}
+.bs.del:hover{color:var(--red);background:var(--red-lt)}
+.bs.apu{font-size:9px;padding:3px 6px;background:var(--amber-lt);color:var(--amber);border-color:var(--amber)}
+.bs.cub{font-size:9px;padding:3px 6px;background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.bs.addc{font-size:9px;padding:3px 6px;background:#f0f9ff;color:#0369a1;border-color:#7dd3fc}
+.bs.addc:hover{background:#e0f2fe;color:#0c4a6e}
+.bs.addp{font-size:9px;padding:3px 6px;background:#f0fdf4;color:#166534;border-color:#86efac}
+.bs.addp:hover{background:#dcfce7;color:#14532d}
+/* TOTALS */
+.tot-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.totals-left{display:flex;flex-direction:column;gap:5px}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)}
+.tr:last-child{border:none}
+.tl{font-size:12px;color:var(--txt2)}
+.tv{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.tr.sep{border-bottom:2px solid var(--border2)}
+.tr.grand{background:var(--navy-lt);padding:9px 12px;border-radius:7px;margin-top:6px}
+.tr.grand .tl{font-weight:600;color:var(--navy);font-size:13px}
+.tr.grand .tv{font-size:16px;font-weight:600;color:var(--navy)}
+.words-row{font-size:10px;color:var(--txt2);font-style:italic;text-align:right;padding:4px 0;border-top:1px solid var(--border);margin-top:4px}
+.cfg-side{display:flex;flex-direction:column;gap:8px}
+.cfg-lbl{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.cr{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cr label{font-size:11px;color:var(--txt2)}
+.cr input[type=number]{font-family:var(--mono);width:62px;font-size:12px;border:1px solid var(--border2);border-radius:4px;padding:3px 5px;background:var(--bg);color:var(--txt);text-align:right}
+.cr input[type=number]:focus{outline:none;border-color:var(--navy)}
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(15,23,42,0.55);z-index:200;overflow-y:auto;padding:20px}
+.modal{background:var(--bg);border-radius:12px;width:100%;max-width:740px;margin:0 auto;border:1px solid var(--border);box-shadow:0 20px 50px rgba(0,0,0,0.2);overflow:hidden}
+.mh{padding:13px 16px;background:var(--navy);display:flex;justify-content:space-between;align-items:center}
+.mh h3{font-size:13px;font-weight:600;color:#fff}
+.mh-badge{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.12);padding:2px 7px;border-radius:4px;margin-left:8px}
+.mb{padding:14px;overflow-y:auto;max-height:460px}
+.mf{padding:11px 14px;background:var(--bg2);border-top:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
+.btn-p{font-family:var(--ff);font-size:12px;font-weight:500;padding:7px 14px;border-radius:6px;cursor:pointer;border:none;color:#fff}
+.btn-p.amber{background:var(--amber)}
+.btn-p.blue{background:var(--navy)}
+.btn-p:hover{opacity:0.87}
+.btn-s{font-family:var(--ff);font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;background:var(--bg);color:var(--txt2);border:1px solid var(--border2)}
+.btn-s:hover{background:var(--bg2)}
+.pbadge{font-family:var(--mono);font-size:14px;font-weight:600}
+/* APU */
+.sec-wrap{margin-bottom:10px}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-radius:5px;margin-bottom:3px}
+.s-mo{background:#eff6ff;color:#1d4ed8}.s-mat{background:#f0fdf4;color:#15803d}
+.s-eq{background:#fffbeb;color:#92400e}.s-sub{background:#fdf4ff;color:#7e22ce}
+.sec-hdr .sl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.sec-hdr .st{font-family:var(--mono);font-size:12px;font-weight:600}
+.at{width:100%;border-collapse:collapse}
+.at th{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.5px;padding:5px;border-bottom:1px solid var(--border2);text-align:left;background:var(--bg2)}
+.at th.r{text-align:right}
+.at td{padding:3px 4px;border-bottom:1px solid var(--border)}
+.at tr:last-child td{border-bottom:none}
+.at input{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px 3px}
+.at input:focus{border-bottom-color:var(--navy)}
+.at .r{text-align:right;font-family:var(--mono)}
+.at .mn{font-family:var(--mono);text-align:right;font-size:11px}
+/* LEYES SOCIALES */
+.ls-box{background:rgba(180,83,9,0.04);border:1px solid rgba(180,83,9,0.2);border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:12px 14px;margin-top:10px}
+.ls-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.ls-title{font-size:10px;font-weight:600;color:var(--amber);text-transform:uppercase;letter-spacing:0.5px}
+.ls-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:7px}
+.li{display:flex;flex-direction:column;gap:2px}
+.li label{font-size:9px;color:var(--txt2);font-weight:500}
+.li input{font-family:var(--mono);font-size:11px;border:1px solid var(--border2);border-radius:4px;padding:3px 5px;background:var(--bg);color:var(--txt);text-align:right;width:100%}
+.li input:focus{outline:none;border-color:var(--amber)}
+.ls-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-top:1px solid rgba(180,83,9,0.15)}
+.ls-row span{font-size:11px;color:var(--txt2)}
+.ls-row strong{font-family:var(--mono);font-size:12px;color:var(--amber)}
+.ls-sub{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:rgba(180,83,9,0.08);border-radius:5px;margin-top:5px}
+.ls-sub span{font-size:11px;font-weight:600;color:var(--amber)}
+.ls-sub strong{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--amber)}
+.apu-sum{background:var(--navy-lt);border-radius:7px;padding:10px 12px;margin-top:10px;border:1px solid rgba(30,58,95,0.15)}
+.apu-sum-title{font-size:10px;font-weight:600;color:var(--navy);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(30,58,95,0.1)}
+.sr:last-child{border:none;margin-top:5px;padding-top:7px;border-top:1px solid rgba(30,58,95,0.2)}
+.sr span{font-size:11px;color:var(--txt2)}
+.sr strong{font-family:var(--mono);font-size:11px;color:var(--txt)}
+.sr.g span{font-weight:600;font-size:13px;color:var(--navy)}
+.sr.g strong{font-size:15px;font-weight:600;color:var(--navy)}
+/* PUNTO 5: APU TAB */
+.apu-tab-list{display:flex;flex-direction:column;gap:10px}
+.apu-tab-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.apu-tab-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg2);cursor:pointer;border-bottom:1px solid var(--border)}
+.apu-tab-hdr:hover{background:var(--navy-lt)}
+.apu-tab-hdr .atl{font-size:11px;font-weight:600;color:var(--navy)}
+.apu-tab-hdr .atr{font-family:var(--mono);font-size:11px;color:var(--txt2)}
+.apu-tab-body{padding:10px 12px;font-size:11px}
+/* GG */
+.gg-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.gg-wrap table{width:100%;border-collapse:collapse}
+.gg-wrap th{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:0.5px;padding:8px 9px;background:var(--bg2);border-bottom:1px solid var(--border2);text-align:left}
+.gg-wrap th.r{text-align:right}
+.gg-wrap td{padding:4px 7px;border-bottom:1px solid var(--border)}
+.gg-wrap input{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px}
+.gg-wrap input:focus{border-bottom-color:var(--navy)}
+.gg-wrap .r{text-align:right;font-family:var(--mono)}
+.gg-wrap .mn{font-family:var(--mono);text-align:right;font-size:11px}
+.gg-foot{padding:8px 12px;background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+/* SETTINGS */
+.cfg-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.cfg-section:last-child{border:none;margin:0;padding:0}
+.cfg-section h4{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--navy);margin-bottom:10px}
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cfg-field{display:flex;flex-direction:column;gap:3px}
+.cfg-field label{font-size:10px;color:var(--txt2);font-weight:500}
+.cfg-field input,.cfg-field select,.cfg-field textarea{font-family:var(--ff);font-size:12px;border:1px solid var(--border2);border-radius:5px;padding:6px 8px;background:var(--bg);color:var(--txt);width:100%}
+.cfg-field input:focus,.cfg-field select:focus,.cfg-field textarea:focus{outline:none;border-color:var(--navy)}
+.cfg-field textarea{resize:vertical;min-height:56px}
+.color-row{display:flex;align-items:center;gap:8px}
+.color-row input[type=color]{width:38px;height:30px;border:1px solid var(--border2);border-radius:4px;cursor:pointer;padding:2px}
+/* radio options */
+.radio-opts{display:flex;flex-direction:column;gap:5px}
+.radio-opt{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--txt2);cursor:pointer;padding:5px 8px;border:1px solid var(--border2);border-radius:5px}
+.radio-opt:hover{background:var(--navy-lt);border-color:var(--navy)}
+.radio-opt input{accent-color:var(--navy)}
+/* PORTADA upload zone */
+.upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer;background:var(--bg2)}
+.upload-zone:hover{border-color:var(--navy);background:var(--navy-lt)}
+.upload-zone p{font-size:11px;color:var(--txt2);margin-top:4px}
+/* FOOTER */
+.app-footer{background:var(--navy);padding:8px 18px;display:flex;align-items:center;justify-content:space-between}
+.app-footer-co{color:rgba(255,255,255,0.75);font-size:11px}
+.app-footer-meta{color:rgba(255,255,255,0.45);font-size:10px;font-family:var(--mono)}
+/* PH */
+.ph{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:28px;text-align:center;color:var(--txt2);font-size:13px;line-height:1.7}
+
+/* ===== PRINT ===== */
+@media print{
+  @page{margin:12mm 10mm;size:Letter landscape}
+  body{background:#fff;font-size:10px}
+  .hdr,.tabs,.tbl-add,.cfg-side,.gg-foot,.app-footer,.span-acts,.no-print{display:none!important}
+  /* PORTADA */
+  .print-cover{display:flex!important;page-break-after:always;flex-direction:column;justify-content:space-between;min-height:96vh;padding:0}
+  .cv-bg{width:100%;height:55vh;overflow:hidden;position:relative}
+  .cv-bg img{width:100%;height:100%;object-fit:cover;display:block}
+  .cv-bg-placeholder{width:100%;height:55vh;display:flex;align-items:center;justify-content:center;font-size:40px}
+  .cv-body{flex:1;padding:14mm 12mm 8mm;display:flex;flex-direction:column;justify-content:space-between}
+  .cv-company{font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+  .cv-tagline{font-size:10px;color:#64748b;margin-bottom:10px}
+  .cv-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin-bottom:6px}
+  .cv-title{font-size:28px;font-weight:700;line-height:1.2;margin-bottom:16px;letter-spacing:-0.5px}
+  .cv-meta{display:flex;gap:24px;margin-bottom:20px;flex-wrap:wrap}
+  .cv-meta-item{text-align:left}
+  .cv-meta-item .lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#94a3b8}
+  .cv-meta-item .val{font-size:11px;font-weight:500;color:#0f172a;margin-top:2px}
+  .cv-bottom{display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #e2e8f0;padding-top:12px}
+  .cv-sign{text-align:center}
+  .cv-sign-line{width:100px;height:1px;background:#94a3b8;margin:24px auto 4px}
+  .cv-sign-label{font-size:8px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px}
+  .cv-sign-name{font-size:10px;color:#475569;margin-top:2px}
+  .cv-right{text-align:right}
+  .cv-right img{max-height:44px;object-fit:contain;margin-bottom:4px;display:block;margin-left:auto}
+  .cv-right p{font-size:9px;color:#94a3b8}
+  /* BODY */
+  .print-body{display:block!important}
+  .print-hdr{display:flex!important;justify-content:space-between;align-items:flex-end;padding-bottom:8px;margin-bottom:10px}
+  .print-hdr-logo{max-height:46px;max-width:90px;object-fit:contain}
+  .print-hdr-info{text-align:right}
+  .print-hdr-info h2{font-size:13px;font-weight:700;margin-bottom:2px}
+  .print-hdr-info p{font-size:9px;color:#64748b;line-height:1.5}
+  .print-hdr-bar{height:3px;border-radius:2px;margin-bottom:12px}
+  .pt{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:9px}
+  .pt th{color:#fff;padding:4px 5px;text-align:left;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px}
+  .pt th.r{text-align:right}
+  .pt td{padding:3px 5px;border-bottom:1px solid #e2e8f0}
+  .pt tr:nth-child(even) td{background:#f8fafc}
+  .pt .chr td{font-weight:600;border-bottom:1px solid #cbd5e1}
+  .pt .r{text-align:right;font-family:'IBM Plex Mono',monospace}
+  .pt-totals{width:260px;margin-left:auto;border:1px solid #e2e8f0;border-radius:5px;overflow:hidden;font-size:9px}
+  .pt-row{display:flex;justify-content:space-between;padding:4px 9px;border-bottom:1px solid #e2e8f0}
+  .pt-row:last-child{color:#fff;border:none;padding:6px 9px}
+  .pt-row .ptl{color:#64748b}
+  .pt-row:last-child .ptl{color:rgba(255,255,255,0.8)}
+  .pt-row .ptv{font-family:'IBM Plex Mono',monospace;font-weight:500}
+  .pt-row:last-child .ptv{font-weight:700;font-size:11px}
+  .pt-words{font-size:8px;color:#64748b;font-style:italic;text-align:right;margin-top:4px;padding:3px 9px}
+  /* PUNTO 8: CABECERA EN HOJAS 2+ */
+  .print-page-hdr{display:flex!important;justify-content:space-between;align-items:center;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;margin-top:10px}
+  .print-page-hdr .pph-left{display:flex;align-items:center;gap:8px}
+  .print-page-hdr img{max-height:32px;max-width:70px;object-fit:contain}
+  .print-page-hdr .pph-co{font-size:9px;font-weight:700;color:#1e3a5f}
+  .print-page-hdr .pph-right{font-size:8px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;text-align:right}
+  /* APU PRINT */
+  .print-apu{display:block!important;page-break-before:always;padding-top:8px}
+  .print-apu h3{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;border-bottom:2px solid #e2e8f0;padding-bottom:6px}
+  .apu-card{margin-bottom:14px;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;page-break-inside:avoid}
+  .apu-card-hdr{background:#f1f5f9;padding:6px 10px;display:flex;justify-content:space-between}
+  .apu-card-hdr .acn{font-size:10px;font-weight:600;color:#1e3a5f}
+  .apu-card-hdr .acu{font-size:9px;color:#64748b;font-family:'IBM Plex Mono',monospace}
+  /* PRINT FOOTER */
+  .print-footer{display:flex!important;justify-content:space-between;align-items:center;border-top:2px solid #e2e8f0;padding-top:7px;margin-top:14px}
+  .print-footer-co{font-size:9px;color:#64748b}
+  .print-footer-meta{font-size:9px;color:#94a3b8;font-family:'IBM Plex Mono',monospace}
+}
+.print-cover,.print-body,.print-hdr,.print-hdr-bar,.pt,.pt-totals,.pt-words,.print-footer,.print-page-hdr,.print-apu{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-logo-wrap" id="logoWrap" title="Click para cambiar logo" onclick="document.getElementById('logoInput').click()">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <input type="file" id="logoInput" accept="image/*" style="display:none" onchange="handleLogo(this)"/>
+    <div class="hdr-txt">
+      <!-- PUNTO 10: nombre cambiado a PresupuestoPro -->
+      <div class="name">Presupuesto<span>Pro</span></div>
+      <div class="sub" id="hdrSub">Construcción Civil · Chile · v4.0</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <button class="hbtn" onclick="openSettings()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Configurar
+    </button>
+    <button class="hbtn" onclick="doPrint()">
+      <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Imprimir
+    </button>
+    <button class="hbtn" onclick="exportCSV()">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      CSV
+    </button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab on" onclick="sw('pres',this)">Presupuesto</div>
+  <div class="tab" onclick="sw('cub',this)">Cubicaciones</div>
+  <div class="tab" onclick="sw('apu',this)">APUs</div>
+  <div class="tab" onclick="sw('gg',this)">Gastos Generales</div>
+</div>
+
+<div class="content">
+  <div id="p-pres" class="pnl on">
+    <div class="proj-bar">
+      <div class="pf"><label>Obra / Proyecto</label><input id="pObra" value="Galpón y Oficinas Inalco"/></div>
+      <div class="pf"><label>Mandante</label><input id="pMandante" value="Inversiones Inalco S.A."/></div>
+      <div class="pf"><label>Ubicación</label><input id="pUbicacion" value="Ruta 5 Norte, Santiago"/></div>
+      <div class="pf"><label>Fecha</label><input id="pFecha" type="date"/></div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span>Ítem</span><span>Descripción</span><span>Unid.</span>
+        <span class="r">Cantidad</span><span class="r">P. Unitario</span>
+        <span class="r">Total</span><span class="r">Acciones</span>
+      </div>
+      <div id="brows"></div>
+      <div class="tbl-add no-print">
+        <button class="bs addc" onclick="addCh()">+ Capítulo</button>
+        <button class="bs addp" onclick="addIt()">+ Partida</button>
+      </div>
+    </div>
+    <div class="tot-card">
+      <div class="totals-left" id="totals"></div>
+      <div class="cfg-side no-print">
+        <div class="cfg-lbl">Configuración de totales</div>
+        <div class="cr"><label>% Gastos Generales</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pGG" value="15" oninput="rc()"><span style="font-size:11px;color:var(--txt2)">%</span></div></div>
+        <div class="cr"><label>% Utilidad</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pUtil" value="12" oninput="rc()"><span style="font-size:11px;color:var(--txt2)">%</span></div></div>
+        <div class="cr"><label>% IVA</label><div style="display:flex;align-items:center;gap:4px"><input type="number" id="pIVA" value="19" oninput="rc()"><span style="font-size:11px;color:var(--txt2)">%</span></div></div>
+        <div class="cr" style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border)">
+          <label>GG fijo (% arriba)</label>
+          <input type="checkbox" id="ggFijo" onchange="rc()">
+        </div>
+        <p style="font-size:10px;color:var(--txt3);margin-top:2px">Desmarcado: usa total de pestaña GG</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PESTAÑA CUBICACIONES -->
+  <div id="p-cub" class="pnl"><div class="ph">Haz clic en <strong>Cub</strong> junto a cualquier partida para abrir su cubicación.</div></div>
+
+  <!-- PUNTO 5: PESTAÑA APUs muestra todos los APUs ingresados -->
+  <div id="p-apu" class="pnl">
+    <div id="apu-list-wrap">
+      <div class="ph" id="apu-empty">Haz clic en <strong>APU</strong> junto a cualquier partida para ingresar su análisis de precio unitario. Los APUs guardados aparecerán aquí.</div>
+    </div>
+  </div>
+
+  <div id="p-gg" class="pnl">
+    <div class="gg-wrap">
+      <table><thead><tr>
+        <th style="width:60px">Ítem</th><th>Descripción</th>
+        <th style="width:55px">Unid.</th><th class="r" style="width:72px">Cant.</th>
+        <th class="r" style="width:110px">P. Unit.</th><th class="r" style="width:115px">Total</th>
+        <th class="no-print" style="width:36px"></th>
+      </tr></thead><tbody id="gg-body"></tbody></table>
+      <div class="gg-foot">
+        <button class="bs no-print" onclick="addGG()">+ Agregar ítem</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;color:var(--txt2)">Total Gastos Generales:</span>
+          <span style="font-family:var(--mono);font-weight:600;font-size:14px;color:var(--navy)" id="gg-tot">$ 0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-footer no-print">
+  <div class="app-footer-co" id="footerCo">PresupuestoPro · Chile</div>
+  <div class="app-footer-meta" id="footerMeta">v4.0 · Presupuesto confidencial</div>
+</div>
+
+<!-- MODAL -->
+<div class="ov" id="ov"><div id="mc"></div></div>
+
+<!-- ===== PRINT ELEMENTS ===== -->
+<!-- PORTADA (opcional) -->
+<div class="print-cover" id="printCover">
+  <div class="cv-bg" id="cvBgWrap">
+    <div class="cv-bg-placeholder" id="cvBgPlaceholder" style="background:linear-gradient(135deg,#1e3a5f,#2563eb)"><span style="color:#fff;font-size:60px;opacity:.5">🏗</span></div>
+    <img id="cvBgImg" src="" alt="" style="display:none"/>
+  </div>
+  <div class="cv-body">
+    <div>
+      <div class="cv-company" id="cvCompany"></div>
+      <div class="cv-tagline" id="cvTagline"></div>
+      <div class="cv-label">Presupuesto de Obra</div>
+      <div class="cv-title" id="cvTitle"></div>
+      <div class="cv-meta">
+        <div class="cv-meta-item"><div class="lbl">Mandante</div><div class="val" id="cvClient"></div></div>
+        <div class="cv-meta-item"><div class="lbl">Ubicación</div><div class="val" id="cvLocation"></div></div>
+        <div class="cv-meta-item"><div class="lbl">Fecha</div><div class="val" id="cvDate"></div></div>
+      </div>
+    </div>
+    <div class="cv-bottom">
+      <div class="cv-sign"><div class="cv-sign-line"></div><div class="cv-sign-label">Representante Legal</div><div class="cv-sign-name" id="cvRL"></div></div>
+      <div class="cv-sign"><div class="cv-sign-line"></div><div class="cv-sign-label">Jefe de Proyecto</div><div class="cv-sign-name" id="cvProf"></div></div>
+      <div class="cv-right">
+        <img id="cvLogo2" src="" alt="" style="display:none"/>
+        <p id="cvAddr"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUERPO PRESUPUESTO -->
+<div class="print-body" id="printBody">
+  <!-- PUNTO 8: mini-cabecera en todas las hojas del cuerpo -->
+  <div class="print-page-hdr">
+    <div class="pph-left">
+      <img id="phLogo" src="" alt="" style="display:none"/>
+      <div class="pph-co" id="phCoName"></div>
+    </div>
+    <div class="pph-right" id="phCoRight"></div>
+  </div>
+  <div class="print-hdr">
+    <div class="print-hdr-info">
+      <h2 id="phTitle">Presupuesto de Obra</h2>
+      <p id="phInfo"></p>
+    </div>
+  </div>
+  <div class="print-hdr-bar" id="phBar"></div>
+  <table class="pt" id="pt"></table>
+  <div class="pt-totals" id="ptTotals"></div>
+  <div class="pt-words" id="ptWords"></div>
+  <!-- PUNTO 6: APUs en impresión (si está habilitado) -->
+  <div class="print-apu" id="printApuSection"></div>
+  <!-- PUNTO 9: pie de página -->
+  <div class="print-footer">
+    <div class="print-footer-co" id="pfCo"></div>
+    <div class="print-footer-meta" id="pfMeta"></div>
+  </div>
+</div>
+
+</div><!-- end .app -->
+
+<script>
+/* =========================================================
+   CONFIG + DATA
+   ========================================================= */
+var CFG={
+  currency:'CLP',decimalsQty:2,decimalsPrice:0,decimalsBudget:0,
+  companyName:'Constructora Solirian',companyRut:'76.123.456-7',
+  companyAddress:'Las Condes, Santiago',companyTagline:'Construcción · Energía Solar · Chile',
+  companyWeb:'www.solirian.cl',
+  companyPhone:'+56 9 1234 5678',companyEmail:'proyectos@solirian.cl',
+  colorHeader:'#1e3a5f',
+  footerText:'Presupuesto confidencial — uso interno',
+  logoDataUrl:'',coverImgUrl:'',
+  repLegal:'',repLegalRut:'',profName:'',profRut:'',
+  printCover:true,   // PUNTO 7
+  printApu:false,    // PUNTO 6
+  printCub:false     // PUNTO 6
+};
+
+var items=[
+  {id:'c1',t:'ch',num:'1.-',name:'OBRAS PREVIAS',unit:'',qty:0,price:0},
+  {id:'i1',t:'it',num:'1.1',name:'Terreno, limpieza y despeje',unit:'gl',qty:1,price:150000},
+  {id:'c2',t:'ch',num:'2.-',name:'INSTALACIÓN DE FAENAS',unit:'',qty:0,price:0},
+  {id:'i3',t:'it',num:'2.1',name:'Contenedor oficina',unit:'mes',qty:3,price:139000},
+  {id:'i4',t:'it',num:'2.2',name:'Baños provisorios',unit:'mes',qty:3,price:85000},
+  {id:'c3',t:'ch',num:'3.-',name:'ESTRUCTURA',unit:'',qty:0,price:0},
+  {id:'i5',t:'it',num:'3.1',name:'Hormigón radier H-25 e=12cm',unit:'m3',qty:42,price:180000},
+  {id:'i6',t:'it',num:'3.2',name:'Enfierradura fy=420 MPa',unit:'kg',qty:3200,price:1250},
+  {id:'i7',t:'it',num:'3.3',name:'Moldaje para radier',unit:'m2',qty:210,price:8500},
+  {id:'c4',t:'ch',num:'4.-',name:'TERMINACIONES',unit:'',qty:0,price:0},
+  {id:'i8',t:'it',num:'4.1',name:'Pavimento interior epóxico',unit:'m2',qty:850,price:18500},
+  {id:'i9',t:'it',num:'4.2',name:'Pintura cielos y muros',unit:'m2',qty:1200,price:4200},
+];
+var ggItems=[
+  {id:'g1',num:'1.1',name:'Profesional Administrador de Obra',unit:'mes',qty:3,price:1800000},
+  {id:'g2',num:'1.2',name:'Prevencionista de Riesgos',unit:'mes',qty:3,price:1100000},
+  {id:'g3',num:'1.3',name:'Bodeguero',unit:'mes',qty:3,price:650000},
+  {id:'g4',num:'1.4',name:'Arriendo instalación faenas',unit:'mes',qty:3,price:350000},
+  {id:'g5',num:'1.5',name:'Servicios básicos',unit:'mes',qty:3,price:120000},
+];
+var apuData={},tofData={},ic=900;
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+function gid(){return 'x'+(ic++);}
+function N(v){return parseFloat(v)||0;}
+function sym(){return CFG.currency==='USD'?'US$':CFG.currency==='UF'?'UF':'$';}
+
+/* PUNTO 3 y 4: formateadores con separador miles CONSISTENTES */
+function fmtQ(n){
+  if(CFG.currency==='UF') return n.toFixed(CFG.decimalsQty);
+  return n.toLocaleString('es-CL',{minimumFractionDigits:CFG.decimalsQty,maximumFractionDigits:CFG.decimalsQty});
+}
+function fmtP(n){
+  /* PUNTO 3: separador de miles en P.Unit */
+  if(CFG.currency==='UF') return n.toFixed(CFG.decimalsPrice);
+  return n.toLocaleString('es-CL',{minimumFractionDigits:CFG.decimalsPrice,maximumFractionDigits:CFG.decimalsPrice});
+}
+function fmtB(n){
+  if(CFG.currency==='UF') return n.toFixed(CFG.decimalsBudget);
+  return n.toLocaleString('es-CL',{minimumFractionDigits:CFG.decimalsBudget,maximumFractionDigits:CFG.decimalsBudget});
+}
+function esc(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+/* Número a letras (español) */
+function numToWords(n){
+  n=Math.round(n);
+  if(n===0)return'CERO';
+  var u=['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'];
+  var d10=['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'];
+  var tens=['','','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+  function dec(n){if(n<10)return u[n];if(n<20)return d10[n-10];var t=tens[Math.floor(n/10)];var r=n%10;return r===0?t:(Math.floor(n/10)===2?'VEINTI'+u[r]:t+' Y '+u[r]);}
+  function cen(n){if(n===100)return'CIEN';if(n<100)return dec(n);var c=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];var r=n%100;return c[Math.floor(n/100)]+(r>0?' '+dec(r):'');}
+  function mil(n){if(n<1000)return cen(n);var m=Math.floor(n/1000),r=n%1000,t=m===1?'MIL':cen(m)+' MIL';return r>0?t+' '+cen(r):t;}
+  function millon(n){if(n<1000000)return mil(n);var m=Math.floor(n/1000000),r=n%1000000,t=m===1?'UN MILLÓN':cen(m)+' MILLONES';return r>0?t+' '+mil(r):t;}
+  var cur=CFG.currency==='USD'?'DÓLARES':CFG.currency==='UF'?'UF':'PESOS';
+  return'SON: '+millon(n)+' '+cur+' .-';
+}
+
+/* =========================================================
+   AUTONUMBER
+   ========================================================= */
+function reNum(){
+  var cn=0,itn=0,cc=0;
+  items=items.map(function(it){
+    if(it.t==='ch'){cn++;itn=0;cc=cn;return Object.assign({},it,{num:cn+'.-'});}
+    itn++;return Object.assign({},it,{num:cc+'.'+itn});
+  });
+}
+
+/* =========================================================
+   CHAPTER TOTALS
+   ========================================================= */
+function ctotals(){
+  var ct={},cur=null;
+  items.forEach(function(it){if(it.t==='ch'){cur=it.id;ct[it.id]=0;}else if(cur)ct[cur]+=N(it.qty)*N(it.price);});
+  return ct;
+}
+
+/* =========================================================
+   RENDER BUDGET
+   ========================================================= */
+function rb(){
+  reNum();
+  var ct=ctotals();
+  var cont=document.getElementById('brows');
+  var existMap={};
+  cont.querySelectorAll('[data-id]').forEach(function(el){existMap[el.dataset.id]=el;});
+  var ids=items.map(function(it){return it.id;});
+  Object.keys(existMap).forEach(function(id){if(!ids.includes(id)){existMap[id].remove();delete existMap[id];}});
+  var prev=null;
+  items.forEach(function(it,idx){
+    var el=existMap[it.id];
+    if(!el){el=it.t==='ch'?mkCh(it,idx):mkIt(it,idx);existMap[it.id]=el;}
+    var ni=el.querySelector('[data-field="num"]');
+    if(ni&&document.activeElement!==ni)ni.value=it.num;
+    var ts=el.querySelector('[data-tot="'+it.id+'"]');
+    if(ts)ts.textContent=sym()+' '+(it.t==='ch'?fmtB(ct[it.id]||0):fmtB(N(it.qty)*N(it.price)));
+    /* PUNTO 3: actualizar display P.Unit con separador miles */
+    var pd=el.querySelector('[data-pdisplay="'+it.id+'"]');
+    if(pd&&document.activeElement!==pd.parentElement.querySelector('input'))pd.textContent=sym()+' '+fmtP(N(it.price));
+    var ab=el.querySelector('[data-apu="'+it.id+'"]');
+    if(ab){var ha=apuData[it.id];ab.textContent=ha?'✓APU':'APU';}
+    var cb=el.querySelector('[data-cub="'+it.id+'"]');
+    if(cb){var hc=tofData[it.id]&&tofData[it.id].length;cb.textContent=hc?'✓Cub':'Cub';}
+    if(prev===null){if(cont.firstChild!==el)cont.insertBefore(el,cont.firstChild);}
+    else{if(prev.nextSibling!==el)cont.insertBefore(el,prev.nextSibling);}
+    prev=el;
+  });
+  rc();
+  refreshApuTab();
+}
+
+/* PUNTO 1: mkCh incluye +C y +P en acciones */
+function mkCh(it,idx){
+  var d=document.createElement('div');
+  d.className='row-ch';d.dataset.id=it.id;
+  d.innerHTML='<input class="ri mono ch" data-field="num" data-id="'+it.id+'" value="'+esc(it.num)+'"/>'
+    +'<input class="ri ch" data-field="name" data-id="'+it.id+'" value="'+esc(it.name)+'"/>'
+    +'<span></span><span></span><span></span>'
+    +'<span class="span-ch-tot" data-tot="'+it.id+'">—</span>'
+    +'<span class="span-acts no-print">'
+    +'<button class="bs addc" title="Agregar Capítulo aquí" onclick="addChAfter(\''+it.id+'\')">+C</button>'
+    +'<button class="bs addp" title="Agregar Partida aquí" onclick="addItAfter(\''+it.id+'\')">+P</button>'
+    +'<button class="bs del" title="Eliminar" onclick="di(\''+it.id+'\')">✕</button>'
+    +'</span>';
+  bind(d);return d;
+}
+function mkIt(it,idx){
+  var d=document.createElement('div');
+  d.className='row-it';d.dataset.id=it.id;
+  /* PUNTO 3: P.Unit con separador miles — input numérico oculto + span visible */
+  d.innerHTML='<input class="ri mono" data-field="num" data-id="'+it.id+'" value="'+esc(it.num)+'"/>'
+    +'<input class="ri" data-field="name" data-id="'+it.id+'" value="'+esc(it.name)+'"/>'
+    +'<input class="ri" style="width:50px" data-field="unit" data-id="'+it.id+'" value="'+esc(it.unit)+'"/>'
+    +'<input class="ri r" data-field="qty" data-id="'+it.id+'" data-num="1" type="number" value="'+N(it.qty)+'"/>'
+    +'<div style="display:flex;align-items:center;gap:3px;padding:3px 4px">'
+    +'<input class="ri r" data-field="price" data-id="'+it.id+'" data-num="1" type="number" value="'+N(it.price)+'" style="width:80px;opacity:0;position:absolute;pointer-events:none" id="ph_'+it.id+'"/>'
+    +'<span style="font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;flex:1;text-align:right" data-pdisplay="'+it.id+'" onclick="focusPriceInput(\''+it.id+'\')" title="Click para editar">'+sym()+' '+fmtP(N(it.price))+'</span>'
+    +'</div>'
+    +'<span class="span-tot" data-tot="'+it.id+'">—</span>'
+    +'<span class="span-acts no-print">'
+    +'<button class="bs cub" data-cub="'+it.id+'" onclick="openTof(\''+it.id+'\')">Cub</button>'
+    +'<button class="bs apu" data-apu="'+it.id+'" onclick="openApu(\''+it.id+'\')">APU</button>'
+    +'<button class="bs addp" title="Agregar Partida aquí" onclick="addItAfter(\''+it.id+'\')">+P</button>'
+    +'<button class="bs del" title="Eliminar" onclick="di(\''+it.id+'\')">✕</button>'
+    +'</span>';
+  bindIt(d,it.id);return d;
+}
+
+/* Edición inline de precio con separador miles */
+function focusPriceInput(id){
+  /* Reemplazar span por input real editable */
+  var span=document.querySelector('[data-pdisplay="'+id+'"]');
+  if(!span)return;
+  var it=items.find(function(x){return x.id===id;});
+  var inp=document.createElement('input');
+  inp.type='number';inp.value=N(it.price);
+  inp.style.cssText='font-family:var(--mono);font-size:12px;width:100%;text-align:right;border:none;border-bottom:1px solid var(--navy);outline:none;background:transparent';
+  inp.dataset.field='price';inp.dataset.id=id;inp.dataset.num='1';
+  span.replaceWith(inp);
+  inp.focus();inp.select();
+  inp.addEventListener('blur',function(){
+    var val=N(this.value);
+    items=items.map(function(x){return x.id===id?Object.assign({},x,{price:val}):x;});
+    var newSpan=document.createElement('span');
+    newSpan.style.cssText='font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;flex:1;text-align:right';
+    newSpan.dataset.pdisplay=id;
+    newSpan.title='Click para editar';
+    newSpan.textContent=sym()+' '+fmtP(val);
+    newSpan.onclick=function(){focusPriceInput(id);};
+    inp.replaceWith(newSpan);
+    updateTots();rc();
+  });
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')this.blur();});
+}
+
+function updateTots(){
+  var ct=ctotals();
+  items.forEach(function(it){
+    var ts=document.querySelector('[data-tot="'+it.id+'"]');
+    if(ts)ts.textContent=sym()+' '+(it.t==='ch'?fmtB(ct[it.id]||0):fmtB(N(it.qty)*N(it.price)));
+  });
+}
+
+function bind(el){
+  el.querySelectorAll('input[data-field]').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var id=this.dataset.id,f=this.dataset.field,v=this.dataset.num?N(this.value):this.value;
+      items=items.map(function(x){if(x.id!==id)return x;var o=Object.assign({},x);o[f]=v;return o;});
+      updateTots();rc();
+    });
+  });
+}
+function bindIt(el,itemId){
+  el.querySelectorAll('input[data-field]').forEach(function(inp){
+    inp.addEventListener('input',function(){
+      var id=this.dataset.id,f=this.dataset.field,v=this.dataset.num?N(this.value):this.value;
+      items=items.map(function(x){if(x.id!==id)return x;var o=Object.assign({},x);o[f]=v;return o;});
+      updateTots();rc();
+    });
+  });
+}
+
+/* PUNTO 1: agregar capítulo/partida DESPUÉS de una fila específica */
+function addChAfter(afterId){
+  var idx=items.findIndex(function(x){return x.id===afterId;});
+  var cn=items.filter(function(x){return x.t==='ch';}).length;
+  var ni={id:gid(),t:'ch',num:(cn+1)+'.-',name:'NUEVO CAPÍTULO',unit:'',qty:0,price:0};
+  items.splice(idx+1,0,ni);rb();
+}
+function addItAfter(afterId){
+  var idx=items.findIndex(function(x){return x.id===afterId;});
+  var ni={id:gid(),t:'it',num:'0.0',name:'Nueva partida',unit:'un',qty:1,price:0};
+  items.splice(idx+1,0,ni);rb();
+  setTimeout(function(){
+    var el=document.querySelector('[data-id="'+ni.id+'"] [data-field="name"]');
+    if(el)el.focus();
+  },50);
+}
+function addCh(){
+  var cn=items.filter(function(x){return x.t==='ch';}).length;
+  items.push({id:gid(),t:'ch',num:(cn+1)+'.-',name:'NUEVO CAPÍTULO',unit:'',qty:0,price:0});
+  rb();
+}
+function addIt(){
+  items.push({id:gid(),t:'it',num:'0.1',name:'Nueva partida',unit:'un',qty:1,price:0});
+  rb();
+  setTimeout(function(){
+    var rs=document.querySelectorAll('[data-id]');var l=rs[rs.length-1];
+    if(l){var ni=l.querySelector('[data-field="name"]');if(ni)ni.focus();}
+  },50);
+}
+function di(id){
+  if(!confirm('¿Eliminar esta fila?'))return;
+  items=items.filter(function(it){return it.id!==id;});
+  var el=document.querySelector('[data-id="'+id+'"]');if(el)el.remove();
+  reNum();
+  items.forEach(function(it){var ni=document.querySelector('[data-id="'+it.id+'"][data-field="num"]');if(ni)ni.value=it.num;});
+  updateTots();rc();refreshApuTab();
+}
+
+/* =========================================================
+   TOTALS
+   ========================================================= */
+function rc(){
+  var dc=items.reduce(function(a,it){return it.t==='it'?a+N(it.qty)*N(it.price):a;},0);
+  var ggF=document.getElementById('ggFijo').checked;
+  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pIVA=N(document.getElementById('pIVA').value);
+  var ggV=ggF?dc*(pGG/100):ggItems.reduce(function(a,it){return a+N(it.qty)*N(it.price);},0);
+  var util=dc*(pU/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva,s=sym();
+  document.getElementById('totals').innerHTML=
+    '<div class="tr"><span class="tl">Costo Directo</span><span class="tv">'+s+' '+fmtB(dc)+'</span></div>'
+    +'<div class="tr"><span class="tl">Gastos Generales'+(ggF?' ('+pGG+'%)':'')+'</span><span class="tv">'+s+' '+fmtB(ggV)+'</span></div>'
+    +'<div class="tr"><span class="tl">Utilidad ('+pU+'%)</span><span class="tv">'+s+' '+fmtB(util)+'</span></div>'
+    +'<div class="tr sep"><span class="tl" style="font-weight:500">Total Neto</span><span class="tv" style="font-weight:500">'+s+' '+fmtB(net)+'</span></div>'
+    +'<div class="tr"><span class="tl">IVA ('+pIVA+'%)</span><span class="tv">'+s+' '+fmtB(iva)+'</span></div>'
+    +'<div class="tr grand"><span class="tl">Total General</span><span class="tv">'+s+' '+fmtB(grand)+'</span></div>'
+    +'<div class="words-row">'+numToWords(grand)+'</div>';
+  updateGGTot();
+}
+
+/* =========================================================
+   GG TAB
+   ========================================================= */
+function renderGG(){
+  document.getElementById('gg-body').innerHTML=ggItems.map(function(it){
+    var t=N(it.qty)*N(it.price);
+    return '<tr data-gg="'+it.id+'">'
+      +'<td><input style="width:52px;font-family:var(--mono);font-size:10px" value="'+esc(it.num)+'" oninput="ugg(\''+it.id+'\',\'num\',this.value,false)"/></td>'
+      +'<td><input value="'+esc(it.name)+'" oninput="ugg(\''+it.id+'\',\'name\',this.value,false)"/></td>'
+      +'<td><input style="width:48px" value="'+esc(it.unit)+'" oninput="ugg(\''+it.id+'\',\'unit\',this.value,false)"/></td>'
+      +'<td><input class="r" type="number" value="'+it.qty+'" oninput="ugg(\''+it.id+'\',\'qty\',this.value,true)"/></td>'
+      +'<td><input class="r" type="number" value="'+it.price+'" oninput="ugg(\''+it.id+'\',\'price\',this.value,true)"/></td>'
+      +'<td class="mn">'+sym()+' '+fmtB(t)+'</td>'
+      +'<td class="no-print"><button class="bs del" onclick="dgg(\''+it.id+'\')">✕</button></td>'
+    +'</tr>';
+  }).join('');
+  updateGGTot();
+}
+function ugg(id,f,v,num){
+  ggItems=ggItems.map(function(it){if(it.id!==id)return it;var o=Object.assign({},it);o[f]=num?N(v):v;return o;});
+  var r=document.querySelector('[data-gg="'+id+'"]');
+  if(r){var it=ggItems.find(function(x){return x.id===id;});var tds=r.querySelectorAll('td');if(tds[5])tds[5].textContent=sym()+' '+fmtB(N(it.qty)*N(it.price));}
+  updateGGTot();rc();
+}
+function addGG(){ggItems.push({id:gid(),num:'',name:'',unit:'mes',qty:1,price:0});renderGG();rc();}
+function dgg(id){ggItems=ggItems.filter(function(it){return it.id!==id;});renderGG();rc();}
+function updateGGTot(){var t=ggItems.reduce(function(a,it){return a+N(it.qty)*N(it.price);},0);var el=document.getElementById('gg-tot');if(el)el.textContent=sym()+' '+fmtB(t);}
+
+/* =========================================================
+   PUNTO 5: REFRESH APU TAB
+   ========================================================= */
+function refreshApuTab(){
+  var wrap=document.getElementById('apu-list-wrap');
+  var hasApu=Object.keys(apuData).length>0;
+  if(!hasApu){wrap.innerHTML='<div class="ph" id="apu-empty">Haz clic en <strong>APU</strong> junto a cualquier partida para ingresar su análisis de precio unitario.</div>';return;}
+  var html='<div class="apu-tab-list">';
+  items.forEach(function(it){
+    if(it.t!=='it'||!apuData[it.id])return;
+    var a=apuData[it.id];
+    var s=sym();
+    function secTot(sec){return(a.secs[sec].rows||[]).reduce(function(x,r){return x+N(r.qty)*N(r.price);},0);}
+    var moT=secTot(0),matT=secTot(1),eqT=secTot(2);
+    var lsPct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
+    var lsT=a.ls.on?moT*(lsPct/100):0;
+    var tot=moT+matT+eqT+lsT;
+    html+='<div class="apu-tab-card">'
+      +'<div class="apu-tab-hdr" onclick="openApu(\''+it.id+'\')" title="Click para editar APU">'
+      +'<span class="atl">'+esc(it.num)+' — '+esc(it.name)+'</span>'
+      +'<span class="atr">'+s+' '+fmtP(tot)+' / '+esc(it.unit||'—')+'</span>'
+      +'</div>'
+      +'<div class="apu-tab-body">'
+      +'<table style="width:100%;border-collapse:collapse;font-size:11px">'
+      +'<tr style="background:#f8fafc"><td style="padding:3px 8px;color:var(--txt2)">Materiales</td><td style="text-align:right;font-family:var(--mono);padding:3px 8px">'+s+' '+fmtP(matT)+'</td></tr>'
+      +'<tr><td style="padding:3px 8px;color:var(--txt2)">Mano de Obra</td><td style="text-align:right;font-family:var(--mono);padding:3px 8px">'+s+' '+fmtP(moT)+'</td></tr>'
+      +'<tr style="background:#f8fafc"><td style="padding:3px 8px;color:var(--txt2)">Leyes Sociales ('+lsPct.toFixed(1)+'%)</td><td style="text-align:right;font-family:var(--mono);padding:3px 8px">'+s+' '+fmtP(lsT)+'</td></tr>'
+      +'<tr><td style="padding:3px 8px;color:var(--txt2)">Equipos/Herram.</td><td style="text-align:right;font-family:var(--mono);padding:3px 8px">'+s+' '+fmtP(eqT)+'</td></tr>'
+      +'<tr style="border-top:2px solid var(--border)"><td style="padding:4px 8px;font-weight:600;color:var(--navy)">P.U. Total</td><td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:13px;padding:4px 8px;color:var(--navy)">'+s+' '+fmtP(tot)+'</td></tr>'
+      +'</table></div></div>';
+  });
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+
+/* =========================================================
+   APU MODAL
+   ========================================================= */
+var STYPES=['Mano de Obra','Materiales','Equipos/Herram.','Subcontratos'];
+var SCLS={'Mano de Obra':'s-mo','Materiales':'s-mat','Equipos/Herram.':'s-eq','Subcontratos':'s-sub'};
+function defLS(){return{afp:11.44,salud:7.0,seguro:2.4,mutual:0.93,sis:1.49,sanna:0.0,otros:0,on:true};}
+function getApu(id){if(!apuData[id])apuData[id]={secs:STYPES.map(function(t){return{type:t,rows:[]};}),ls:defLS()};return apuData[id];}
+
+function openApu(itemId){
+  var item=items.find(function(it){return it.id===itemId;});
+  var apu=getApu(itemId);
+  document.getElementById('ov').style.display='block';
+  function moTot(){return apu.secs[0].rows.reduce(function(a,r){return a+N(r.qty)*N(r.price);},0);}
+  function lsPct(){var ls=apu.ls;return N(ls.afp)+N(ls.salud)+N(ls.seguro)+N(ls.mutual)+N(ls.sis)+N(ls.sanna)+N(ls.otros);}
+  function lsTot(){return apu.ls.on?moTot()*(lsPct()/100):0;}
+  function secTot(si){return apu.secs[si].rows.reduce(function(a,r){return a+N(r.qty)*N(r.price);},0);}
+  function grandTot(){return apu.secs.reduce(function(a,s,si){return a+secTot(si);},0)+lsTot();}
+  function render(){
+    var ls=apu.ls,pct=lsPct(),mo=moTot(),lt=lsTot(),gt=grandTot(),s=sym();
+    /* PUNTO 4: fmtP usa decimalesPrice correctamente — NO fmtB */
+    var secsH=apu.secs.map(function(sec,si){
+      var st=secTot(si),cls=SCLS[sec.type]||'s-mat';
+      return '<div class="sec-wrap"><div class="sec-hdr '+cls+'"><span class="sl">'+sec.type+'</span><span class="st">'+s+' '+fmtP(st)+'</span></div>'
+        +'<table class="at"><thead><tr><th>Recurso</th><th style="width:46px">Unid.</th>'
+        +'<th class="r" style="width:78px">Rendim.</th><th class="r" style="width:88px">P. Unit.</th>'
+        +'<th class="r" style="width:88px">Subtotal</th><th style="width:28px"></th></tr></thead><tbody>'
+        +sec.rows.map(function(r,ri){
+          return '<tr><td><input value="'+esc(r.desc)+'" oninput="aur('+si+','+ri+',\'desc\',this.value)"/></td>'
+            +'<td><input style="width:40px" value="'+esc(r.unit)+'" oninput="aur('+si+','+ri+',\'unit\',this.value)"/></td>'
+            +'<td><input class="r" type="number" value="'+N(r.qty)+'" oninput="aur('+si+','+ri+',\'qty\',this.value)"/></td>'
+            +'<td><input class="r" type="number" value="'+N(r.price)+'" oninput="aur('+si+','+ri+',\'price\',this.value)"/></td>'
+            +'<td class="mn">'+s+' '+fmtP(N(r.qty)*N(r.price))+'</td>'
+            +'<td><button class="bs del" onclick="adr('+si+','+ri+')">✕</button></td></tr>';
+        }).join('')+'</tbody></table>'
+        +'<button class="bs" style="margin:4px 0 0 2px;font-size:9px" onclick="aar('+si+')">+ Recurso</button></div>';
+    }).join('');
+    var lsH='<div class="ls-box"><div class="ls-head"><div class="ls-title">Leyes Sociales — cargo empleador sobre MO</div>'
+      +'<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--txt2)">Aplicar <input type="checkbox" '+(ls.on?'checked':'')+' onchange="als(this.checked)"/></label></div>'
+      +'<div class="ls-grid">'
+      +'<div class="li"><label>AFP empleador (%)</label><input type="number" step="0.01" value="'+ls.afp+'" oninput="uls(\'afp\',this.value)"/></div>'
+      +'<div class="li"><label>Salud Fonasa/Isapre (%)</label><input type="number" step="0.01" value="'+ls.salud+'" oninput="uls(\'salud\',this.value)"/></div>'
+      +'<div class="li"><label>Seg. cesantía emp. (%)</label><input type="number" step="0.01" value="'+ls.seguro+'" oninput="uls(\'seguro\',this.value)"/></div>'
+      +'<div class="li"><label>Mutual accidentes (%)</label><input type="number" step="0.01" value="'+ls.mutual+'" oninput="uls(\'mutual\',this.value)"/></div>'
+      +'<div class="li"><label>SIS invalidez (%)</label><input type="number" step="0.01" value="'+ls.sis+'" oninput="uls(\'sis\',this.value)"/></div>'
+      +'<div class="li"><label>SANNA / Otros (%)</label><input type="number" step="0.01" value="'+ls.sanna+'" oninput="uls(\'sanna\',this.value)"/></div>'
+      +'</div><div class="ls-row"><span>Total % leyes sociales</span><strong>'+pct.toFixed(2)+'%</strong></div>'
+      +'<div class="ls-sub"><span>Base MO '+s+' '+fmtP(mo)+' × '+pct.toFixed(2)+'% =</span><strong>'+s+' '+fmtP(lt)+'</strong></div></div>';
+    var sumH='<div class="apu-sum"><div class="apu-sum-title">Resumen APU — '+esc(item.unit||'—')+'</div>'
+      +apu.secs.map(function(sec,si){return '<div class="sr"><span>'+sec.type+'</span><strong>'+s+' '+fmtP(secTot(si))+'</strong></div>';}).join('')
+      +'<div class="sr"><span>Leyes Sociales sobre MO</span><strong>'+s+' '+fmtP(lt)+'</strong></div>'
+      +'<div class="sr g"><span>Precio Unitario Total</span><strong>'+s+' '+fmtP(gt)+'</strong></div></div>';
+    document.getElementById('mc').innerHTML='<div class="modal" style="max-width:780px"><div class="mh">'
+      +'<div style="display:flex;align-items:center"><h3>APU — '+esc(item.name)+'</h3><span class="mh-badge">'+esc(item.unit||'—')+'</span></div>'
+      +'<button class="btn-s" style="color:#fff;border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.1)" onclick="closeMod()">✕</button></div>'
+      +'<div class="mb">'+secsH+lsH+sumH+'</div>'
+      +'<div class="mf"><span class="pbadge" style="color:var(--amber)">'+s+' '+fmtP(gt)+' / '+esc(item.unit||'—')+'</span>'
+      +'<div style="display:flex;gap:7px"><button class="btn-s" onclick="closeMod()">Cancelar</button>'
+      +'<button class="btn-p amber" onclick="saveApu(\''+itemId+'\','+gt+')">Guardar APU</button></div></div></div>';
+  }
+  window.aur=function(si,ri,f,v){apu.secs[si].rows[ri][f]=['qty','price'].includes(f)?N(v):v;render();};
+  window.aar=function(si){apu.secs[si].rows.push({desc:'',unit:'gl',qty:1,price:0});render();};
+  window.adr=function(si,ri){apu.secs[si].rows.splice(ri,1);render();};
+  window.uls=function(f,v){apu.ls[f]=N(v);render();};
+  window.als=function(v){apu.ls.on=v;render();};
+  render();
+}
+function saveApu(itemId,gt){
+  items=items.map(function(it){return it.id===itemId?Object.assign({},it,{price:Math.round(gt)}):it;});
+  closeMod();updateTots();rc();rb();
+}
+
+/* =========================================================
+   CUBICACIÓN MODAL
+   ========================================================= */
+function openTof(itemId){
+  var item=items.find(function(it){return it.id===itemId;});
+  if(!tofData[itemId])tofData[itemId]=[];
+  var rows=tofData[itemId];
+  document.getElementById('ov').style.display='block';
+  function calcTot(){var t=0;rows.forEach(function(r){r.tot=(N(r.l)||N(r.w))?N(r.l)*N(r.w)*(N(r.h)||1)*(N(r.f)||1):0;t+=r.tot;});return t;}
+  function render(){
+    var tot=calcTot();
+    document.getElementById('mc').innerHTML='<div class="modal"><div class="mh"><h3>Cubicación — '+esc(item.name)+'</h3>'
+      +'<button class="btn-s" style="color:#fff;border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.1)" onclick="closeMod()">✕</button></div>'
+      +'<div class="mb"><table class="at" style="width:100%"><thead><tr>'
+      +'<th>Descripción</th><th class="r" style="width:68px">Largo</th><th class="r" style="width:68px">Ancho</th>'
+      +'<th class="r" style="width:56px">Alto</th><th class="r" style="width:56px">Factor</th>'
+      +'<th class="r" style="width:76px">Total</th><th style="width:28px"></th></tr></thead><tbody>'
+      +rows.map(function(r,i){return '<tr>'
+        +'<td><input value="'+esc(r.desc)+'" oninput="tur('+i+',\'desc\',this.value)"/></td>'
+        +'<td><input class="r" type="number" value="'+(r.l||0)+'" oninput="tur('+i+',\'l\',this.value)"/></td>'
+        +'<td><input class="r" type="number" value="'+(r.w||0)+'" oninput="tur('+i+',\'w\',this.value)"/></td>'
+        +'<td><input class="r" type="number" value="'+(r.h||1)+'" oninput="tur('+i+',\'h\',this.value)"/></td>'
+        +'<td><input class="r" type="number" value="'+(r.f||1)+'" oninput="tur('+i+',\'f\',this.value)"/></td>'
+        +'<td class="mn">'+(r.tot||0).toFixed(CFG.decimalsQty)+'</td>'
+        +'<td><button class="bs del" onclick="tdr('+i+')">✕</button></td></tr>';}).join('')
+      +'</tbody></table><button class="bs" style="margin:8px 0 0" onclick="tar()">+ Agregar fila</button></div>'
+      +'<div class="mf"><span class="pbadge" style="color:var(--navy)">'+tot.toFixed(CFG.decimalsQty)+' '+esc(item.unit)+'</span>'
+      +'<div style="display:flex;gap:7px"><button class="btn-s" onclick="closeMod()">Cancelar</button>'
+      +'<button class="btn-p blue" onclick="saveTof(\''+itemId+'\','+tot+')">Guardar en Presupuesto</button></div></div></div>';
+  }
+  window.tur=function(i,f,v){rows[i][f]=v;render();};
+  window.tar=function(){rows.push({desc:'',l:0,w:0,h:1,f:1,tot:0});render();};
+  window.tdr=function(i){rows.splice(i,1);render();};
+  render();
+}
+function saveTof(itemId,tot){
+  items=items.map(function(it){return it.id===itemId?Object.assign({},it,{qty:parseFloat(tot.toFixed(CFG.decimalsQty))}):it;});
+  closeMod();updateTots();rc();rb();
+}
+function closeMod(){document.getElementById('ov').style.display='none';document.getElementById('mc').innerHTML='';}
+
+/* =========================================================
+   PUNTO 6+7: SETTINGS con opciones impresión y portada
+   ========================================================= */
+function openSettings(){
+  document.getElementById('ov').style.display='block';
+  document.getElementById('mc').innerHTML='<div class="modal" style="max-width:660px">'
+    +'<div class="mh"><h3>⚙ Configuración General</h3>'
+    +'<button class="btn-s" style="color:#fff;border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.1)" onclick="closeMod()">✕</button></div>'
+    +'<div class="mb" style="max-height:520px">'
+
+    /* Moneda y decimales */
+    +'<div class="cfg-section"><h4>Moneda y decimales</h4><div class="cfg-grid">'
+    +'<div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;rb();rc();">'
+    +'<option value="CLP"'+(CFG.currency==='CLP'?' selected':'')+'>CLP — Peso ($)</option>'
+    +'<option value="USD"'+(CFG.currency==='USD'?' selected':'')+'>USD — Dólar (US$)</option>'
+    +'<option value="UF"'+(CFG.currency==='UF'?' selected':'')+'>UF — Unidad de Fomento</option>'
+    +'</select></div>'
+    +'<div class="cfg-field"><label>Decimales cantidades</label><select onchange="CFG.decimalsQty=+this.value;rb();rc();">'
+    +[0,1,2,3].map(function(n){return '<option value="'+n+'"'+(CFG.decimalsQty===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></div>'
+
+    /* PUNTO 4: decimales APU separados de los demás */
+    +'<div class="cfg-field"><label>Decimales precio unitario / APU</label><select onchange="CFG.decimalsPrice=+this.value;rb();rc();">'
+    +[0,1,2,3].map(function(n){return '<option value="'+n+'"'+(CFG.decimalsPrice===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></div>'
+    +'<div class="cfg-field"><label>Decimales totales presupuesto</label><select onchange="CFG.decimalsBudget=+this.value;rb();rc();">'
+    +[0,1,2].map(function(n){return '<option value="'+n+'"'+(CFG.decimalsBudget===n?' selected':'')+'>'+n+'</option>';}).join('')+'</select></div>'
+    +'</div></div>'
+
+    /* Empresa */
+    +'<div class="cfg-section"><h4>Empresa constructora</h4><div class="cfg-grid">'
+    +'<div class="cfg-field"><label>Nombre empresa</label><input value="'+esc(CFG.companyName)+'" oninput="CFG.companyName=this.value;updBrand()"/></div>'
+    +'<div class="cfg-field"><label>RUT empresa</label><input value="'+esc(CFG.companyRut)+'" oninput="CFG.companyRut=this.value"/></div>'
+    +'<div class="cfg-field"><label>Dirección</label><input value="'+esc(CFG.companyAddress)+'" oninput="CFG.companyAddress=this.value;updBrand()"/></div>'
+    +'<div class="cfg-field"><label>Especialidad / tagline</label><input value="'+esc(CFG.companyTagline)+'" oninput="CFG.companyTagline=this.value;updBrand()"/></div>'
+    /* PUNTO 9: teléfono y correo */
+    +'<div class="cfg-field"><label>Teléfono / Celular</label><input value="'+esc(CFG.companyPhone)+'" oninput="CFG.companyPhone=this.value"/></div>'
+    +'<div class="cfg-field"><label>Correo electrónico</label><input value="'+esc(CFG.companyEmail)+'" oninput="CFG.companyEmail=this.value"/></div>'
+    +'<div class="cfg-field"><label>Sitio web</label><input value="'+esc(CFG.companyWeb)+'" oninput="CFG.companyWeb=this.value"/></div>'
+    +'</div></div>'
+
+    /* Firmantes */
+    +'<div class="cfg-section"><h4>Firmantes (portada impresa)</h4><div class="cfg-grid">'
+    +'<div class="cfg-field"><label>Representante Legal</label><input value="'+esc(CFG.repLegal)+'" oninput="CFG.repLegal=this.value"/></div>'
+    +'<div class="cfg-field"><label>RUT Rep. Legal</label><input value="'+esc(CFG.repLegalRut)+'" oninput="CFG.repLegalRut=this.value"/></div>'
+    +'<div class="cfg-field"><label>Profesional a cargo</label><input value="'+esc(CFG.profName)+'" oninput="CFG.profName=this.value"/></div>'
+    +'<div class="cfg-field"><label>RUT Profesional</label><input value="'+esc(CFG.profRut)+'" oninput="CFG.profRut=this.value"/></div>'
+    +'</div></div>'
+
+    /* PUNTO 6: opciones de impresión */
+    +'<div class="cfg-section"><h4>Opciones de impresión</h4>'
+    +'<div class="radio-opts">'
+    +'<label class="radio-opt"><input type="checkbox" '+(CFG.printCover?'checked':'')+' onchange="CFG.printCover=this.checked"> Imprimir PORTADA (hoja 1 con imagen arquitectura)</label>'
+    +'<label class="radio-opt"><input type="checkbox" '+(CFG.printApu?'checked':'')+' onchange="CFG.printApu=this.checked"> Imprimir Anexo APUs</label>'
+    +'<label class="radio-opt"><input type="checkbox" '+(CFG.printCub?'checked':'')+' onchange="CFG.printCub=this.checked"> Imprimir Memoria de Cubicaciones</label>'
+    +'</div></div>'
+
+    /* PUNTO 7: imagen portada */
+    +'<div class="cfg-section"><h4>Imagen de portada</h4>'
+    +'<div class="upload-zone" onclick="document.getElementById(\'coverImgInput\').click()">'
+    +(CFG.coverImgUrl?'<img src="'+CFG.coverImgUrl+'" style="max-height:80px;border-radius:5px"/>':'<span style="font-size:28px">🏗</span>')
+    +'<p>'+(CFG.coverImgUrl?'Click para cambiar imagen':'Click para subir imagen (JPG/PNG)')+'</p>'
+    +'</div>'
+    +'<input type="file" id="coverImgInput" accept="image/*" style="display:none" onchange="handleCoverImg(this)"/>'
+    +'</div>'
+
+    /* Colores y logo */
+    +'<div class="cfg-section"><h4>Colores y logo</h4><div class="cfg-grid">'
+    +'<div class="cfg-field"><label>Color principal</label>'
+    +'<div class="color-row"><input type="color" value="'+CFG.colorHeader+'" oninput="CFG.colorHeader=this.value;applyColor()"/>'
+    +'<span id="chex">'+CFG.colorHeader+'</span></div></div>'
+    +'<div class="cfg-field"><label>Logo empresa</label>'
+    +'<button class="bs" onclick="document.getElementById(\'logoInput\').click()">📁 Subir logo</button>'
+    +(CFG.logoDataUrl?'<img src="'+CFG.logoDataUrl+'" style="height:28px;margin-top:5px;display:block"/>':'')
+    +'</div></div></div>'
+
+    +'</div><div class="mf"><span style="font-size:11px;color:var(--txt2)">Cambios en tiempo real</span>'
+    +'<button class="btn-p blue" onclick="closeMod()">Listo</button></div></div>';
+}
+function updBrand(){
+  document.getElementById('hdrSub').textContent=CFG.companyTagline;
+  document.getElementById('footerCo').textContent=CFG.companyName;
+  document.getElementById('footerMeta').textContent=CFG.footerText;
+}
+function applyColor(){
+  document.documentElement.style.setProperty('--navy',CFG.colorHeader);
+  document.documentElement.style.setProperty('--navy-lt',CFG.colorHeader+'22');
+  var el=document.getElementById('chex');if(el)el.textContent=CFG.colorHeader;
+}
+function handleLogo(inp){
+  if(!inp.files[0])return;
+  var r=new FileReader();
+  r.onload=function(e){
+    CFG.logoDataUrl=e.target.result;
+    var w=document.getElementById('logoWrap');
+    w.innerHTML='<img src="'+CFG.logoDataUrl+'"/>';
+  };
+  r.readAsDataURL(inp.files[0]);
+}
+/* PUNTO 7: imagen portada */
+function handleCoverImg(inp){
+  if(!inp.files[0])return;
+  var r=new FileReader();
+  r.onload=function(e){
+    CFG.coverImgUrl=e.target.result;
+    var bg=document.getElementById('cvBgImg');
+    if(bg){bg.src=CFG.coverImgUrl;bg.style.display='block';}
+    var ph=document.getElementById('cvBgPlaceholder');
+    if(ph)ph.style.display='none';
+  };
+  r.readAsDataURL(inp.files[0]);
+}
+
+/* =========================================================
+   TABS
+   ========================================================= */
+function sw(id,el){
+  document.querySelectorAll('.pnl').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on');});
+  document.getElementById('p-'+id).classList.add('on');el.classList.add('on');
+  if(id==='apu')refreshApuTab();
+}
+
+/* =========================================================
+   IMPRIMIR
+   ========================================================= */
+function doPrint(){
+  var obra=document.getElementById('pObra').value;
+  var mandante=document.getElementById('pMandante').value;
+  var ubic=document.getElementById('pUbicacion').value;
+  var fecha=document.getElementById('pFecha').value;
+  var s=sym();
+
+  /* Totales */
+  var dc=items.reduce(function(a,it){return it.t==='it'?a+N(it.qty)*N(it.price):a;},0);
+  var ggF=document.getElementById('ggFijo').checked;
+  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pIVA=N(document.getElementById('pIVA').value);
+  var ggV=ggF?dc*(pGG/100):ggItems.reduce(function(a,it){return a+N(it.qty)*N(it.price);},0);
+  var util=dc*(pU/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
+
+  /* PUNTO 7: PORTADA */
+  var cvr=document.getElementById('printCover');
+  cvr.style.display=CFG.printCover?'flex':'none';
+  document.getElementById('cvCompany').textContent=CFG.companyName;
+  document.getElementById('cvTagline').textContent=CFG.companyTagline;
+  document.getElementById('cvTitle').textContent=obra;
+  document.getElementById('cvTitle').style.color=CFG.colorHeader;
+  document.getElementById('cvClient').textContent=mandante;
+  document.getElementById('cvLocation').textContent=ubic;
+  document.getElementById('cvDate').textContent=fecha;
+  document.getElementById('cvRL').textContent=(CFG.repLegal||'Rep. Legal')+(CFG.repLegalRut?' · RUT '+CFG.repLegalRut:'');
+  document.getElementById('cvProf').textContent=(CFG.profName||'Profesional a cargo')+(CFG.profRut?' · RUT '+CFG.profRut:'');
+  document.getElementById('cvAddr').textContent=CFG.companyAddress+(CFG.companyWeb?' · '+CFG.companyWeb:'');
+  var cvl=document.getElementById('cvLogo2');if(cvl){if(CFG.logoDataUrl){cvl.src=CFG.logoDataUrl;cvl.style.display='block';}else cvl.style.display='none';}
+
+  /* PUNTO 8: cabecera mini */
+  var phl=document.getElementById('phLogo');if(phl){if(CFG.logoDataUrl){phl.src=CFG.logoDataUrl;phl.style.display='block';}else phl.style.display='none';}
+  document.getElementById('phCoName').textContent=CFG.companyName;
+  document.getElementById('phCoRight').textContent=obra+' — '+fecha;
+  document.getElementById('phTitle').textContent='Presupuesto de Obra — '+obra;
+  document.getElementById('phTitle').style.color=CFG.colorHeader;
+  document.getElementById('phInfo').innerHTML=esc(mandante)+' · '+esc(ubic)+'<br>Fecha: '+esc(fecha)+' · '+esc(CFG.companyName);
+  document.getElementById('phBar').style.background=CFG.colorHeader;
+
+  /* Tabla presupuesto */
+  var ct=ctotals();
+  var tbl='<thead><tr style="background:'+CFG.colorHeader+'">'
+    +'<th style="width:52px">Ítem</th><th>Descripción</th><th style="width:36px">Unid.</th>'
+    +'<th class="r" style="width:56px">Cant.</th><th class="r" style="width:80px">P. Unit.</th>'
+    +'<th class="r" style="width:80px">Total</th></tr></thead><tbody>';
+  items.forEach(function(it){
+    if(it.t==='ch'){
+      tbl+='<tr class="chr" style="background:'+CFG.colorHeader+'18"><td style="font-family:var(--mono);font-size:8px">'+esc(it.num)+'</td>'
+        +'<td colspan="4" style="color:'+CFG.colorHeader+'">'+esc(it.name)+'</td>'
+        +'<td class="r" style="color:'+CFG.colorHeader+'">'+s+' '+fmtB(ct[it.id]||0)+'</td></tr>';
+    } else {
+      tbl+='<tr><td style="font-family:var(--mono);font-size:8px">'+esc(it.num)+'</td>'
+        +'<td>'+esc(it.name)+'</td><td>'+esc(it.unit)+'</td>'
+        +'<td class="r">'+fmtQ(N(it.qty))+'</td>'
+        +'<td class="r">'+s+' '+fmtP(N(it.price))+'</td>'
+        +'<td class="r">'+s+' '+fmtB(N(it.qty)*N(it.price))+'</td></tr>';
+    }
+  });
+  tbl+='</tbody>';
+  document.getElementById('pt').innerHTML=tbl;
+
+  document.getElementById('ptTotals').innerHTML=
+    '<div class="pt-row"><span class="ptl">Costo Directo</span><span class="ptv">'+s+' '+fmtB(dc)+'</span></div>'
+    +'<div class="pt-row"><span class="ptl">Gastos Generales</span><span class="ptv">'+s+' '+fmtB(ggV)+'</span></div>'
+    +'<div class="pt-row"><span class="ptl">Utilidad ('+pU+'%)</span><span class="ptv">'+s+' '+fmtB(util)+'</span></div>'
+    +'<div class="pt-row"><span class="ptl">Total Neto</span><span class="ptv">'+s+' '+fmtB(net)+'</span></div>'
+    +'<div class="pt-row"><span class="ptl">IVA ('+pIVA+'%)</span><span class="ptv">'+s+' '+fmtB(iva)+'</span></div>'
+    +'<div class="pt-row" style="background:'+CFG.colorHeader+'"><span class="ptl">Total General</span><span class="ptv">'+s+' '+fmtB(grand)+'</span></div>';
+  document.getElementById('ptWords').textContent=numToWords(grand);
+
+  /* PUNTO 6: APUs en impresión */
+  var apuSec=document.getElementById('printApuSection');
+  if(CFG.printApu){
+    var apuHtml='<h3>Análisis de Precios Unitarios</h3>';
+    items.forEach(function(it){
+      if(it.t!=='it'||!apuData[it.id])return;
+      var a=apuData[it.id];
+      function secT(si){return(a.secs[si].rows||[]).reduce(function(x,r){return x+N(r.qty)*N(r.price);},0);}
+      var lsPct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
+      var lsT=a.ls.on?secT(0)*(lsPct/100):0;
+      var tot=secT(0)+secT(1)+secT(2)+lsT;
+      apuHtml+='<div class="apu-card"><div class="apu-card-hdr"><span class="acn">'+esc(it.num)+' — '+esc(it.name)+'</span><span class="acu">'+s+' '+fmtP(tot)+' / '+esc(it.unit||'')+'</span></div>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:9px">'
+        +'<thead><tr style="background:#f1f5f9"><th style="padding:3px 6px;text-align:left">Recurso</th><th>Unid.</th><th style="text-align:right">Rend.</th><th style="text-align:right">P.U.</th><th style="text-align:right">Subtotal</th></tr></thead><tbody>';
+      ['Mano de Obra','Materiales','Equipos/Herram.'].forEach(function(tn,si){
+        (a.secs[si].rows||[]).forEach(function(r){
+          apuHtml+='<tr><td style="padding:2px 6px">'+esc(r.desc)+'</td><td style="text-align:center">'+esc(r.unit)+'</td>'
+            +'<td style="text-align:right;font-family:var(--mono)">'+r.qty+'</td>'
+            +'<td style="text-align:right;font-family:var(--mono)">'+s+' '+fmtP(N(r.price))+'</td>'
+            +'<td style="text-align:right;font-family:var(--mono)">'+s+' '+fmtP(N(r.qty)*N(r.price))+'</td></tr>';
+        });
+      });
+      apuHtml+='<tr style="background:#fffbeb"><td style="padding:2px 6px;font-weight:600">Leyes Sociales ('+lsPct.toFixed(1)+'%)</td>'
+        +'<td colspan="3"></td><td style="text-align:right;font-family:var(--mono)">'+s+' '+fmtP(lsT)+'</td></tr>'
+        +'<tr style="border-top:2px solid #e2e8f0"><td style="padding:3px 6px;font-weight:700;color:#1e3a5f" colspan="4">P.U. Total</td>'
+        +'<td style="text-align:right;font-family:var(--mono);font-weight:700;color:#1e3a5f">'+s+' '+fmtP(tot)+'</td></tr>'
+        +'</tbody></table></div>';
+    });
+    apuSec.innerHTML=apuHtml;
+    apuSec.style.display='block';
+  } else {
+    apuSec.style.display='none';
+  }
+
+  /* PUNTO 9: pie de página impresión */
+  document.getElementById('pfCo').innerHTML='<strong>'+esc(CFG.companyName)+'</strong> · '+esc(CFG.companyAddress)+(CFG.companyPhone?' · '+esc(CFG.companyPhone):'')+(CFG.companyEmail?' · '+esc(CFG.companyEmail):'');
+  document.getElementById('pfMeta').textContent=CFG.companyWeb?CFG.companyWeb:'';
+
+  window.print();
+}
+
+/* =========================================================
+   CSV
+   ========================================================= */
+function exportCSV(){
+  var csv='Ítem,Descripción,Unidad,Cantidad,P.Unit.,Total\n';
+  items.forEach(function(it){var t=it.t==='it'?N(it.qty)*N(it.price):'';csv+='"'+esc(it.num)+'","'+esc(it.name)+'","'+esc(it.unit)+'",'+N(it.qty)+','+N(it.price)+','+t+'\n';});
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='Presupuesto.csv';a.click();
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+document.getElementById('pFecha').value=new Date().toISOString().split('T')[0];
+rb();renderGG();updBrand();
+</script>
+</body>
+</html>

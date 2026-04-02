@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PresAI Software - Presupuesto de Obras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; -webkit-print-color-adjust: exact; }
+        input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .page-break { page-break-before: always; }
+        @media print { .no-print { display: none !important; } .print-break { page-break-before: always; } }
+        #root:empty { display: flex; height: 100vh; align-items: center; justify-content: center; font-weight: 900; color: #2563eb; }
+        #root:empty::after { content: "CARGANDO PRESAI SOFTWARE..."; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo, useEffect } = React;
+        const apiKey = ""; // Inyectada por el entorno
+
+        // --- SVG ICONS ---
+        const Icon = ({ path, color="currentColor", size=14 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d={path}/></svg>
+        );
+        const I_Settings = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const I_X = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>;
+
+        // --- CONVERSOR A LETRAS ---
+        const numeroALetras = (num, moneda) => {
+            if(!num || num===0) return `SON: CERO ${moneda === 'CLP' ? 'PESOS' : 'DÓLARES'}.-`;
+            const Unidades = (n) => ['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'][n];
+            const Decenas = (n) => {
+                if (n<10) return Unidades(n);
+                if (n<20) return ['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'][n-10];
+                const d = Math.floor(n/10); const u = n%10;
+                const t = ['','','VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'][d];
+                return u === 0 ? t : (d === 2 ? 'VEINTI' : t + ' Y ') + Unidades(u);
+            };
+            const Centenas = (n) => {
+                if (n === 100) return 'CIEN';
+                if (n < 100) return Decenas(n);
+                const c = Math.floor(n/100); const r = n%100;
+                const t = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'][c];
+                return r === 0 ? t : t + ' ' + Decenas(r);
+            };
+            const miles = (n) => {
+                if (n < 1000) return Centenas(n);
+                const m = Math.floor(n/1000); const r = n%1000;
+                const t = m === 1 ? 'MIL' : Centenas(m) + ' MIL';
+                return r === 0 ? t : t + ' ' + Centenas(r);
+            };
+            const millones = (n) => {
+                if (n < 1000000) return miles(n);
+                const m = Math.floor(n/1000000); const r = n%1000000;
+                const t = m === 1 ? 'UN MILLÓN' : Centenas(m) + ' MILLONES';
+                return r === 0 ? t : t + ' ' + miles(r);
+            };
+            const entero = Math.floor(num);
+            const centavos = Math.round((num - entero) * 100);
+            const texto = millones(entero);
+            const sufijo = moneda === 'CLP' ? 'PESOS' : 'DÓLARES';
+            return `SON: ${texto} ${sufijo} ${centavos > 0 ? `CON ${centavos}/100` : ''}.-`.toUpperCase();
+        };
+
+        // --- GEMINI API ---
+        const callGemini = async (prompt, systemPrompt, isJson = false) => {
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] },
+                        ...(isJson ? { generationConfig: { responseMimeType: "application/json" } } : {})
+                    })
+                });
+                const result = await response.json();
+                return result.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch (err) { console.error(err); return null; }
+        };
+
+        function App() {
+            const [activeModal, setActiveModal] = useState(null);
+            const [selectedId, setSelectedId] = useState(null);
+            const [logo, setLogo] = useState(null);
+            const [aiSummary, setAiSummary] = useState("");
+            const [isAiLoading, setIsAiLoading] = useState(false);
+
+            // --- ESTADOS PRINCIPALES ---
+            const [config, setConfig] = useState({
+                moneda: 'CLP', paridad: 950,
+                decCant: 2, decApu: 0, decSub: 0, decTot: 0,
+                printApu: true, printCub: true
+            });
+
+            const [footer, setFooter] = useState({
+                empresa: 'CONSTRUCTORA SOLIRIAN',
+                direccion: 'Av. Providencia 1234, Santiago',
+                celular: '+56 9 1234 5678',
+                correo: 'proyectos@solirian.cl'
+            });
+
+            const [project, setProject] = useState({
+                obra: 'PROYECTO FOTOVOLTAICO - SOLIRIAN',
+                mandante: 'LIBERTAD65 INVESTMENTS',
+                ubicacion: 'SANTIAGO, CHILE',
+                fecha: new Date().toISOString().split('T')[0]
+            });
+
+            const [items, setItems] = useState([
+                { id: '1', type: 'capitulo', nombre: 'OBRAS PREVIAS', unidad: '', cant: 0, precio: 0 },
+                { id: '2', type: 'partida', nombre: 'Instalación de faenas', unidad: 'GL', cant: 1, precio: 450000 },
+            ]);
+
+            const [estudioGG, setEstudioGG] = useState([{ desc: 'Seguros', monto: 120000 }]);
+            const [globalGG, setGlobalGG] = useState(15);
+            const [globalUtil, setGlobalUtil] = useState(10);
+            
+            const [apus, setApus] = useState({});
+            const [cubicaciones, setCubicaciones] = useState({});
+
+            // --- LÓGICA CORE: JERARQUÍA Y SUMA DE CAPÍTULOS ---
+            const processedItems = useMemo(() => {
+                let capCount = 0; let parCount = 0;
+                let currentCapId = null;
+                const sums = {};
+
+                // Pasada 1: Sumar partidas en su capítulo
+                items.forEach(i => {
+                    if (i.type === 'capitulo') {
+                        currentCapId = i.id;
+                        sums[currentCapId] = 0;
+                    } else if (i.type === 'partida' && currentCapId) {
+                        sums[currentCapId] += (Number(i.cant) * Number(i.precio));
+                    }
+                });
+
+                // Pasada 2: Asignar números y precios de capítulos
+                return items.map(item => {
+                    if (item.type === 'capitulo') {
+                        capCount++; parCount = 0;
+                        return { ...item, num: capCount.toString().padStart(2, '0'), precioTotal: sums[item.id] || 0 };
+                    } else {
+                        parCount++;
+                        return { ...item, num: `${capCount.toString().padStart(2, '0')}.${parCount}` };
+                    }
+                });
+            }, [items]);
+
+            const fmt = (val, type) => {
+                if (val === "" || val == null) return "";
+                const dec = config[`dec${type}`] || 0;
+                return Number(val).toLocaleString('de-DE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+            };
+
+            const totales = useMemo(() => {
+                let directo = items.reduce((acc, i) => i.type === 'partida' ? acc + (Number(i.cant) * Number(i.precio)) : acc, 0);
+                const gg = directo * (Number(globalGG) / 100);
+                const util = directo * (Number(globalUtil) / 100);
+                const neto = directo + gg + util;
+                return { directo, gg, util, neto, iva: neto * 0.19, total: neto * 1.19 };
+            }, [items, globalGG, globalUtil]);
+
+            // --- HANDLERS ---
+            const handleFocus = (e) => {
+                const val = e.target.value.toLowerCase();
+                if (val.includes("nueva partida") || val.includes("nuevo capítulo") || val.includes("nombre") || val === "0") {
+                    e.target.value = "";
+                }
+            };
+
+            const addItem = (idx, type) => {
+                const newItem = { id: Math.random().toString(36).substr(2,9), type, nombre: type === 'capitulo' ? 'NUEVO CAPÍTULO' : 'Nueva partida', unidad: type === 'partida' ? 'UN' : '', cant: type === 'partida' ? 1 : 0, precio: 0 };
+                const n = [...items]; n.splice(idx + 1, 0, newItem); setItems(n);
+            };
+
+            const exportPDF = async () => {
+                const btn = document.getElementById('btn-export');
+                const origText = btn.innerText;
+                btn.innerText = "GENERANDO...";
+                await loadHtml2Pdf();
+                const opt = {
+                    margin: 5, filename: `Presupuesto_${project.obra}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                await window.html2pdf().from(document.getElementById('presupuesto-doc')).set(opt).save();
+                btn.innerText = origText;
+            };
+
+            // --- MODALES ---
+            const ConfigModal = () => (
+                <div className="fixed inset-0 bg-black/80 z-[1000] flex justify-center items-center p-4 backdrop-blur-sm">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]">
+                        <div className="bg-blue-600 text-white p-5 flex justify-between items-center">
+                            <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-2"><I_Settings/> Configuración</h2>
+                            <button onClick={()=>setActiveModal(null)}><I_X/></button>
+                        </div>
+                        <div className="p-6 overflow-y-auto space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase">Moneda</label>
+                                <select className="w-full p-2 border-b-2 font-bold outline-none" value={config.moneda} onChange={e=>{
+                                    const n = e.target.value; const f = n==='USD' ? (1/config.paridad) : config.paridad;
+                                    setItems(items.map(i => ({...i, precio: i.precio * f})));
+                                    setConfig({...config, moneda: n});
+                                }}><option value="CLP">CLP</option><option value="USD">USD</option></select></div>
+                                <div><label className="text-[10px] font-black text-slate-400 uppercase">Paridad (T/C)</label>
+                                <input type="number" className="w-full p-2 border-b-2 font-bold outline-none" value={config.paridad} onChange={e=>setConfig({...config, paridad: e.target.value})} disabled={config.moneda==='CLP'}/></div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-2 border-t pt-4">
+                                {['Cant', 'Apu', 'Sub', 'Tot'].map((f, i) => (
+                                    <div key={f}><label className="text-[8px] font-black text-slate-400 uppercase">Dec {f}</label>
+                                    <input type="number" className="w-full p-2 bg-slate-50 rounded text-center font-bold" value={config[`dec${['Cant','Apu','Sub','Tot'][i]}`]} onChange={e=>setConfig({...config, [`dec${['Cant','Apu','Sub','Tot'][i]}`]: parseInt(e.target.value)})} /></div>
+                                ))}
+                            </div>
+                            <div className="border-t pt-4 space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Impresión en PDF</label>
+                                <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={config.printApu} onChange={e=>setConfig({...config, printApu: e.target.checked})} className="w-4 h-4"/> Adjuntar Anexo APU</label>
+                                <label className="flex items-center gap-2 text-sm font-bold"><input type="checkbox" checked={config.printCub} onChange={e=>setConfig({...config, printCub: e.target.checked})} className="w-4 h-4"/> Adjuntar Anexo Cubicaciones</label>
+                            </div>
+                            <div className="border-t pt-4 space-y-3">
+                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Pie de Página</label>
+                                <input className="w-full p-2 border rounded font-black text-xs uppercase" value={footer.empresa} onChange={e=>setFooter({...footer, empresa: e.target.value})} placeholder="Nombre Empresa"/>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <input className="w-full p-2 border rounded text-[10px] font-bold" value={footer.direccion} onChange={e=>setFooter({...footer, direccion: e.target.value})} placeholder="Dirección"/>
+                                    <input className="w-full p-2 border rounded text-[10px] font-bold" value={footer.celular} onChange={e=>setFooter({...footer, celular: e.target.value})} placeholder="Celular"/>
+                                    <input className="w-full p-2 border rounded text-[10px] font-bold text-blue-600" value={footer.correo} onChange={e=>setFooter({...footer, correo: e.target.value})} placeholder="Correo"/>
+                                </div>
+                            </div>
+                        </div>
+                        <button onClick={()=>setActiveModal(null)} className="m-4 bg-slate-900 text-white py-4 rounded-xl font-black text-xs uppercase shadow-xl hover:bg-slate-800">Guardar Configuración</button>
+                    </div>
+                </div>
+            );
+
+            const CubicarModal = () => {
+                const p = items.find(i=>i.id===selectedId);
+                const [r, setR] = useState(cubicaciones[selectedId] || [{d:'Eje 1',n:1,l:0,a:0,h:0}]);
+                const t = r.reduce((acc, x) => acc + (Number(x.n)*(Number(x.l)||1)*(Number(x.a)||1)*(Number(x.h)||1)), 0);
+                return (
+                    <div className="fixed inset-0 bg-black/80 z-[1000] flex justify-center items-center p-4">
+                        <div className="bg-white w-full max-w-2xl rounded-2xl flex flex-col overflow-hidden">
+                            <div className="bg-slate-800 text-white p-4 flex justify-between items-center">
+                                <div><p className="text-[10px] font-bold text-slate-400">CUBICACIÓN</p><h3 className="font-black text-sm uppercase">{p.nombre}</h3></div>
+                                <button onClick={()=>setActiveModal(null)}><I_X/></button>
+                            </div>
+                            <div className="p-4 overflow-auto max-h-[60vh]">
+                                <table className="w-full text-xs text-center border-collapse">
+                                    <thead className="bg-slate-100 font-black uppercase text-[9px]"><tr><th className="p-2 text-left">Detalle</th><th className="p-2">N</th><th className="p-2">Largo</th><th className="p-2">Ancho</th><th className="p-2">Alto</th><th className="p-2 text-right">SubT</th></tr></thead>
+                                    <tbody>
+                                        {r.map((x,i)=>(<tr key={i} className="border-b"><td className="p-1"><input className="w-full outline-none uppercase" value={x.d} onChange={e=>{let n=[...r]; n[i].d=e.target.value; setR(n)}}/></td><td><input type="number" className="w-10 text-center outline-none" value={x.n} onChange={e=>{let n=[...r]; n[i].n=e.target.value; setR(n)}}/></td><td><input type="number" className="w-10 text-center outline-none" value={x.l} onChange={e=>{let n=[...r]; n[i].l=e.target.value; setR(n)}}/></td><td><input type="number" className="w-10 text-center outline-none" value={x.a} onChange={e=>{let n=[...r]; n[i].a=e.target.value; setR(n)}}/></td><td><input type="number" className="w-10 text-center outline-none" value={x.h} onChange={e=>{let n=[...r]; n[i].h=e.target.value; setR(n)}}/></td><td className="p-1 text-right font-black">{fmt(Number(x.n)*(Number(x.l)||1)*(Number(x.a)||1)*(Number(x.h)||1), 'Cant')}</td></tr>))}
+                                    </tbody>
+                                </table>
+                                <button onClick={()=>setR([...r,{d:'',n:1,l:0,a:0,h:0}])} className="mt-4 text-[10px] font-black text-blue-600">+ Añadir Fila</button>
+                            </div>
+                            <div className="p-4 bg-slate-50 border-t flex justify-between items-center">
+                                <span className="font-black text-lg">TOTAL: {fmt(t,'Cant')} {p.unidad}</span>
+                                <button onClick={()=>{setCubicaciones({...cubicaciones, [selectedId]:r}); updateItem(selectedId, 'cant', t); setActiveModal(null);}} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-black text-xs uppercase">Confirmar</button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const ApuModal = () => {
+                const p = items.find(i=>i.id===selectedId);
+                const [la, setLa] = useState(apus[selectedId] || { mat:[], mo:[], eq:[

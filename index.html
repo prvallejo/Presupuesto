@@ -264,10 +264,10 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
         <div id="totals" class="totals-left"></div>
         <div class="cfg-side no-print">
           <div class="cfg-lbl">Parámetros de Cálculo</div>
-          <div class="cr"><label>Gastos Generales (%)</label><input type="number" id="pGG" value="15" oninput="rc();markUnsaved()"/></div>
+          <div class="cr"><label>Gastos Generales (%)</label><input type="number" id="pGG" value="15" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
           <div class="cr"><label style="font-size:9px;color:var(--txt3);margin-left:12px"><input type="checkbox" id="ggFijo" onchange="rc();markUnsaved()"/> Usar % fijo (ignorar detalle GG)</label></div>
-          <div class="cr"><label>Utilidad (%)</label><input type="number" id="pUtil" value="12" oninput="rc();markUnsaved()"/></div>
-          <div class="cr"><label>IVA (%)</label><input type="number" id="pIVA" value="19" oninput="rc();markUnsaved()"/></div>
+          <div class="cr"><label>Utilidad (%)</label><input type="number" id="pUtil" value="12" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
+          <div class="cr"><label>IVA (%)</label><input type="number" id="pIVA" value="19" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
         </div>
       </div>
     </div>
@@ -395,8 +395,8 @@ function rb(){
       <input class="ri mono" data-field="num" data-id="${it.id}" placeholder="N°" value="${esc(it.num)}"/>
       <input class="ri" data-field="name" data-id="${it.id}" placeholder="Descripción..." value="${esc(it.name)}"/>
       <input class="ri" style="width:50px" data-field="unit" data-id="${it.id}" placeholder="unid" value="${esc(it.unit)}"/>
-      <input class="ri r" data-field="qty" data-id="${it.id}" placeholder="0" value="${fmtQ(N(it.qty))}"/>
-      <input class="ri r" data-field="price" data-id="${it.id}" placeholder="P.Unit." value="${fmtP(N(it.price))}"/>
+      <input class="ri r" data-field="qty" data-id="${it.id}" placeholder="0" value="${fmtQ(N(it.qty))}" onfocus="this.select()"/>
+      <input class="ri r" data-field="price" data-id="${it.id}" placeholder="P.Unit." value="${fmtP(N(it.price))}" onfocus="this.select()"/>
       <span class="span-tot">${sym()} ${fmtB(tot)}</span>
       <span class="span-acts no-print">
         <button class="bs cub${hc?' done':''}" onclick="openTof('${it.id}')">${hc?'✓Cub':'Cub'}</button>
@@ -415,7 +415,7 @@ function initEvents(){
     items=items.map(function(x){if(x.id!==id)return x;var o=Object.assign({},x);o[f]=v;return o;});
     var ct=ctotals();
     items.forEach(function(it){
-      var row=document.querySelector(`.row-ch[data-id="${it.id}"], .row-it[data-id="${it.id}"]`);
+      var row=document.querySelector(`.row-it[data-id="${it.id}"], .row-ch[data-id="${it.id}"]`);
       if(row){
         var ts=row.querySelector('.span-ch-tot, .span-tot');
         if(ts)ts.textContent=sym()+' '+(it.t==='ch'?fmtB(ct[it.id]||0):fmtB(N(it.qty)*N(it.price)));
@@ -467,8 +467,8 @@ function renderGG(){
       <td><input class="mono" value="${esc(it.num)}" oninput="ugg('${it.id}','num',this.value)"/></td>
       <td><input value="${esc(it.name)}" oninput="ugg('${it.id}','name',this.value)"/></td>
       <td><input style="width:50px" value="${esc(it.unit)}" oninput="ugg('${it.id}','unit',this.value)"/></td>
-      <td><input class="r" type="text" value="${fmtQ(N(it.qty))}" oninput="ugg('${it.id}','qty',this.value)"/></td>
-      <td><input class="r" type="text" value="${fmtP(N(it.price))}" oninput="ugg('${it.id}','price',this.value)"/></td>
+      <td><input class="r" type="text" value="${fmtQ(N(it.qty))}" oninput="ugg('${it.id}','qty',this.value)" onfocus="this.select()"/></td>
+      <td><input class="r" type="text" value="${fmtP(N(it.price))}" oninput="ugg('${it.id}','price',this.value)" onfocus="this.select()"/></td>
       <td class="r mono">${sym()} ${fmtB(N(it.qty)*N(it.price))}</td>
       <td class="no-print"><button class="bs del" onclick="dgg('${it.id}')">×</button></td>
     </tr>`).join('');
@@ -511,8 +511,8 @@ function renderApuEdit(id){
     rows.forEach((r,ri)=>html+=`<tr>
       <td><input value="${esc(r.desc)}" oninput="uapu('${id}',${si},${ri},'desc',this.value)"/></td>
       <td><input style="width:40px" value="${esc(r.unit)}" oninput="uapu('${id}',${si},${ri},'unit',this.value)"/></td>
-      <td><input class="r" type="text" value="${fmtQ(N(r.qty))}" oninput="uapu('${id}',${si},${ri},'qty',this.value)"/></td>
-      <td><input class="r" type="text" value="${fmtP(N(r.price))}" oninput="uapu('${id}',${si},${ri},'price',this.value)"/></td>
+      <td><input class="r" type="text" value="${fmtQ(N(r.qty))}" oninput="uapu('${id}',${si},${ri},'qty',this.value)" onfocus="this.select()"/></td>
+      <td><input class="r" type="text" value="${fmtP(N(r.price))}" oninput="uapu('${id}',${si},${ri},'price',this.value)" onfocus="this.select()"/></td>
       <td class="r mn" id="sub-${id}-${si}-${ri}">${fmtP(N(r.qty)*N(r.price))}</td>
       <td><button class="bs del" onclick="dapu('${id}',${si},${ri})">×</button></td></tr>`);
     html+=`</tbody></table><button class="bs addp" style="margin-top:4px" onclick="aapu('${id}',${si})">+ Recurso</button></div>`;
@@ -522,12 +522,12 @@ function renderApuEdit(id){
   let lt=a.ls.on?mo*(pct/100):0;
   html+=`<div class="ls-box"><div class="ls-head"><span class="ls-title">Leyes Sociales</span><input type="checkbox" ${a.ls.on?'checked':''} onchange="apuData['${id}'].ls.on=this.checked;renderApuEdit('${id}')"/></div>
     <div class="ls-grid">
-      <div class="li"><label>AFP</label><input type="number" value="${a.ls.afp}" oninput="uls('${id}','afp',this.value)"/></div>
-      <div class="li"><label>Salud</label><input type="number" value="${a.ls.salud}" oninput="uls('${id}','salud',this.value)"/></div>
-      <div class="li"><label>Seguro</label><input type="number" value="${a.ls.seguro}" oninput="uls('${id}','seguro',this.value)"/></div>
-      <div class="li"><label>Mutual</label><input type="number" value="${a.ls.mutual}" oninput="uls('${id}','mutual',this.value)"/></div>
-      <div class="li"><label>SIS</label><input type="number" value="${a.ls.sis}" oninput="uls('${id}','sis',this.value)"/></div>
-      <div class="li"><label>Otros</label><input type="number" value="${a.ls.otros}" oninput="uls('${id}','otros',this.value)"/></div>
+      <div class="li"><label>AFP</label><input type="number" value="${a.ls.afp}" oninput="uls('${id}','afp',this.value)" onfocus="this.select()"/></div>
+      <div class="li"><label>Salud</label><input type="number" value="${a.ls.salud}" oninput="uls('${id}','salud',this.value)" onfocus="this.select()"/></div>
+      <div class="li"><label>Seguro</label><input type="number" value="${a.ls.seguro}" oninput="uls('${id}','seguro',this.value)" onfocus="this.select()"/></div>
+      <div class="li"><label>Mutual</label><input type="number" value="${a.ls.mutual}" oninput="uls('${id}','mutual',this.value)" onfocus="this.select()"/></div>
+      <div class="li"><label>SIS</label><input type="number" value="${a.ls.sis}" oninput="uls('${id}','sis',this.value)" onfocus="this.select()"/></div>
+      <div class="li"><label>Otros</label><input type="number" value="${a.ls.otros}" oninput="uls('${id}','otros',this.value)" onfocus="this.select()"/></div>
     </div><div class="ls-foot"><span class="lt">Total Leyes Sociales (${pct.toFixed(2)}%)</span><span class="lv" id="ls-tot-${id}">${sym()} ${fmtP(lt)}</span></div></div>`;
   let totalApu = a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0) + lt;
   html+=`<div style="margin-top:15px;text-align:right;font-size:16px;font-weight:700;color:var(--navy)" id="apu-total-${id}">Precio Unitario Total: ${sym()} ${fmtP(totalApu)}</div>`;
@@ -575,9 +575,9 @@ function renderTof(id){
   let html=`<div class="tof-hdr"><span>Descripción / Eje</span><span>Cant.</span><span>Ancho</span><span>Largo</span><span>Total</span><span></span></div>`;
   rows.forEach((r,ri)=>html+=`<div class="tof-row">
     <input value="${esc(r.desc)}" oninput="utof('${id}',${ri},'desc',this.value)"/>
-    <input class="r" type="text" value="${fmtQ(N(r.n))}" oninput="utof('${id}',${ri},'n',this.value)"/>
-    <input class="r" type="text" value="${fmtQ(N(r.a))}" oninput="utof('${id}',${ri},'a',this.value)"/>
-    <input class="r" type="text" value="${fmtQ(N(r.l))}" oninput="utof('${id}',${ri},'l',this.value)"/>
+    <input class="r" type="text" value="${fmtQ(N(r.n))}" oninput="utof('${id}',${ri},'n',this.value)" onfocus="this.select()"/>
+    <input class="r" type="text" value="${fmtQ(N(r.a))}" oninput="utof('${id}',${ri},'a',this.value)" onfocus="this.select()"/>
+    <input class="r" type="text" value="${fmtQ(N(r.l))}" oninput="utof('${id}',${ri},'l',this.value)" onfocus="this.select()"/>
     <div class="st" id="tof-sub-${id}-${ri}">${fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))}</div>
     <button class="bs del" onclick="dtof('${id}',${ri})">×</button></div>`);
   let total = rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
@@ -669,8 +669,11 @@ function doPrint(){
     <div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">${esc(CFG.profName||profesional)}</div></div>
   </div>`;
 
-  var footer=`<div style="position:fixed;bottom:10mm;left:10mm;right:10mm;text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #eee;padding-top:5px">
-    ${esc(CFG.companyAddress)} | ${esc(CFG.companyPhone)} | ${esc(CFG.companyEmail)} | ${esc(CFG.companyWeb)}
+  var footer=`<div style="position:fixed;bottom:5mm;left:10mm;right:10mm;text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="flex:1;text-align:left">${esc(CFG.companyAddress)} | ${esc(CFG.companyPhone)} | ${esc(CFG.companyEmail)}</div>
+      <div style="font-weight:600">Pág. <span class="pageNumber"></span> de <span class="totalPages"></span></div>
+    </div>
   </div>`;
 
   var win=window.open('','_blank');
@@ -680,7 +683,13 @@ function doPrint(){
     th,td{border:1px solid #eee;padding:4px 6px}
     .page-break{page-break-before:always}
     .avoid-break{page-break-inside:avoid}
-    @media print{@page{size:landscape;margin:10mm}}
+    @media print{
+      @page{size:landscape;margin:15mm 10mm 20mm 10mm}
+      .footer-wrap{position:fixed;bottom:0;width:100%}
+    }
+    body { counter-reset: page; }
+    .pageNumber:after { counter-increment: page; content: counter(page); }
+    /* Nota: totalPages requiere JS o soporte avanzado de CSS print que varía por navegador */
   </style></head><body>
     ${CFG.printCover ? `
     <div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">
@@ -692,6 +701,7 @@ function doPrint(){
         <p><strong>Ubicación:</strong> ${esc(ubic)}</p>
         <p><strong>Fecha:</strong> ${esc(fecha)}</p>
       </div>
+      ${footer}
     </div>` : ''}
     <div style="padding:10mm">
       ${runHdr}
@@ -710,6 +720,14 @@ function doPrint(){
     ${apuHtml}
     ${cubHtml}
     ${apuHtml || cubHtml ? `<div style="padding:10mm;position:relative;min-height:200px">${signatures}${footer}</div>` : ''}
+    <script>
+      // Intento de calcular total de páginas post-render
+      window.onload = function() {
+        var total = document.querySelectorAll('.page-break').length + (document.querySelector('.page-break-after') ? 1 : 0) + 1;
+        // En landscape y con saltos manuales, esto es una aproximación.
+        // El estándar CSS 'counter(pages)' no es soportado en Chrome/Edge print preview directamente.
+      };
+    </script>
   </body></html>`);
   win.document.close();
   setTimeout(()=>win.print(),500);
@@ -727,10 +745,10 @@ function openSettings(){
           <option value="USD" ${CFG.currency==='USD'?'selected':''}>USD (US$)</option>
           <option value="UF" ${CFG.currency==='UF'?'selected':''}>UF</option>
         </select></div>
-        <div class="cfg-field"><label>Paridad (1 ${sym()} = ? CLP)</label><input type="number" value="${CFG.parity}" oninput="CFG.parity=N(this.value);saveCFG();rc()"/></div>
-        <div class="cfg-field"><label>Dec. Cantidades</label><input type="number" value="${CFG.decimalsQty}" oninput="CFG.decimalsQty=N(this.value);saveCFG();rb()"/></div>
-        <div class="cfg-field"><label>Dec. P.Unit (APU)</label><input type="number" value="${CFG.decimalsPrice}" oninput="CFG.decimalsPrice=N(this.value);saveCFG();rb()"/></div>
-        <div class="cfg-field"><label>Dec. Totales</label><input type="number" value="${CFG.decimalsBudget}" oninput="CFG.decimalsBudget=N(this.value);saveCFG();rb()"/></div>
+        <div class="cfg-field"><label>Paridad (1 ${sym()} = ? CLP)</label><input type="number" value="${CFG.parity}" oninput="CFG.parity=N(this.value);saveCFG();rc()" onfocus="this.select()"/></div>
+        <div class="cfg-field"><label>Dec. Cantidades</label><input type="number" value="${CFG.decimalsQty}" oninput="CFG.decimalsQty=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
+        <div class="cfg-field"><label>Dec. P.Unit (APU)</label><input type="number" value="${CFG.decimalsPrice}" oninput="CFG.decimalsPrice=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
+        <div class="cfg-field"><label>Dec. Totales</label><input type="number" value="${CFG.decimalsBudget}" oninput="CFG.decimalsBudget=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
       </div></div>
       <div class="cfg-section"><h4>Empresa Constructora</h4><div class="cfg-grid">
         <div class="cfg-field"><label>Nombre</label><input value="${esc(CFG.companyName)}" oninput="CFG.companyName=this.value;saveCFG();updBrand()"/></div>
@@ -777,6 +795,7 @@ function newProject(){
   currentProjectId=null; isDirty=false;
   items=[{id:gid(),t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0},{id:gid(),t:'it',num:'1.1',name:'',unit:'',qty:0,price:0}];
   ggItems=[]; apuData={}; tofData={};
+  CFG.coverImgUrl = ''; // Borrar imagen de portada al crear nuevo proyecto
   ['pObra','pMandante','pUbicacion','pProfesional'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pFecha').value=new Date().toISOString().split('T')[0];
   rb(); renderGG(); updBrand(); closeMod();
@@ -784,7 +803,7 @@ function newProject(){
 function saveProject(){
   let obra=document.getElementById('pObra').value.trim(); if(!obra){alert('Nombre de obra requerido');return;}
   if(!currentProjectId) currentProjectId='proj_'+Date.now();
-  let p={id:currentProjectId,obra,mandante:document.getElementById('pMandante').value,ubicacion:document.getElementById('pUbicacion').value,profesional:document.getElementById('pProfesional').value,fecha:document.getElementById('pFecha').value,items,ggItems,apuData,tofData,pGG:document.getElementById('pGG').value,pUtil:document.getElementById('pUtil').value,pIVA:document.getElementById('pIVA').value,ggFijo:document.getElementById('ggFijo').checked};
+  let p={id:currentProjectId,obra,mandante:document.getElementById('pMandante').value,ubicacion:document.getElementById('pUbicacion').value,profesional:document.getElementById('pProfesional').value,fecha:document.getElementById('pFecha').value,items,ggItems,apuData,tofData,pGG:document.getElementById('pGG').value,pUtil:document.getElementById('pUtil').value,pIVA:document.getElementById('pIVA').value,ggFijo:document.getElementById('ggFijo').checked,coverImgUrl:CFG.coverImgUrl};
   lsS('od_proj_'+currentProjectId,p);
   let idx=getIdx(),e=idx.find(x=>x.id===currentProjectId);
   if(e){e.obra=obra;e.savedAt=new Date().toISOString();}else idx.unshift({id:currentProjectId,obra,savedAt:new Date().toISOString()});
@@ -805,6 +824,7 @@ function openProjects(){
 function loadP(id){
   let p=lsL('od_proj_'+id); if(!p)return;
   currentProjectId=id; items=p.items; ggItems=p.ggItems; apuData=p.apuData; tofData=p.tofData;
+  CFG.coverImgUrl = p.coverImgUrl || '';
   document.getElementById('pObra').value=p.obra; document.getElementById('pMandante').value=p.mandante;
   document.getElementById('pUbicacion').value=p.ubicacion; document.getElementById('pProfesional').value=p.profesional;
   document.getElementById('pFecha').value=p.fecha; document.getElementById('pGG').value=p.pGG;

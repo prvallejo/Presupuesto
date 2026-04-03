@@ -532,7 +532,7 @@ function renderApuEdit(id){
   let totalApu = a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0) + lt;
   html+=`<div style="margin-top:15px;text-align:right;font-size:16px;font-weight:700;color:var(--navy)" id="apu-total-${id}">Precio Unitario Total: ${sym()} ${fmtP(totalApu)}</div>`;
   document.getElementById('apu-edit-body').innerHTML=html;
-  it.price = totalApu; rb();
+  items.find(x=>x.id===id).price = totalApu; rb();
 }
 function aapu(id,si){apuData[id].secs[si].rows.push({desc:'',unit:'',qty:1,price:0});renderApuEdit(id);markUnsaved();}
 function uapu(id,si,ri,f,v){
@@ -615,120 +615,104 @@ function doPrint(){
   var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
   var util=dc*(pU/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
 
-  var runHdr=`<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid ${color};padding-bottom:8px;margin-bottom:14px">
-    <div style="display:flex;align-items:center;gap:10px">${CFG.logoDataUrl?`<img src="${CFG.logoDataUrl}" style="max-height:40px;max-width:90px;object-fit:contain"/>`:''}
-    <div><div style="font-size:11px;font-weight:700;color:${color}">${esc(CFG.companyName)}</div><div style="font-size:8px;color:#64748b">${esc(CFG.companyTagline)}</div></div></div>
-    <div style="text-align:right"><div style="font-size:12px;font-weight:600;color:${color}">${esc(obra)}</div><div style="font-size:8px;color:#94a3b8;font-family:monospace">${esc(mandante)} · ${esc(fecha)}</div></div></div>`;
+  var runHdr='<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid '+color+';padding-bottom:8px;margin-bottom:14px">' +
+    '<div style="display:flex;align-items:center;gap:10px">' + (CFG.logoDataUrl?'<img src="'+CFG.logoDataUrl+'" style="max-height:40px;max-width:90px;object-fit:contain"/>':'') +
+    '<div><div style="font-size:11px;font-weight:700;color:'+color+'">'+esc(CFG.companyName)+'</div><div style="font-size:8px;color:#64748b">'+esc(CFG.companyTagline)+'</div></div></div>' +
+    '<div style="text-align:right"><div style="font-size:12px;font-weight:600;color:'+color+'">'+esc(obra)+'</div><div style="font-size:8px;color:#94a3b8;font-family:monospace">'+esc(mandante)+' · '+esc(fecha)+'</div></div></div>';
 
   var trows='';
   items.forEach(it=>{
     if(it.t==='ch'){
-      trows+=`<tr style="background:${color}18"><td colspan="2" style="font-weight:700;color:${color};padding:6px 8px;font-size:10px">${esc(it.num)}&nbsp;&nbsp;${esc(it.name)}</td><td></td><td></td><td></td><td style="text-align:right;font-family:monospace;font-weight:700;color:${color};padding:6px 8px">${s} ${fmtB(ct[it.id]||0)}</td></tr>`;
+      trows+='<tr style="background:'+color+'18"><td colspan="2" style="font-weight:700;color:'+color+';padding:6px 8px;font-size:10px">'+esc(it.num)+'&nbsp;&nbsp;'+esc(it.name)+'</td><td></td><td></td><td></td><td style="text-align:right;font-family:monospace;font-weight:700;color:'+color+';padding:6px 8px">'+s+' '+fmtB(ct[it.id]||0)+'</td></tr>';
     } else {
-      trows+=`<tr><td style="font-family:monospace;font-size:9px;padding:5px 8px;color:#475569">${esc(it.num)}</td><td style="padding:5px 8px">${esc(it.name)}</td><td style="text-align:center;padding:5px 8px">${esc(it.unit)}</td><td style="text-align:right;font-family:monospace;padding:5px 8px">${fmtQ(N(it.qty))}</td><td style="text-align:right;font-family:monospace;padding:5px 8px">${s} ${fmtP(N(it.price))}</td><td style="text-align:right;font-family:monospace;padding:5px 8px;font-weight:500">${s} ${fmtB(N(it.qty)*N(it.price))}</td></tr>`;
+      trows+='<tr><td style="font-family:monospace;font-size:9px;padding:5px 8px;color:#475569">'+esc(it.num)+'</td><td style="padding:5px 8px">'+esc(it.name)+'</td><td style="text-align:center;padding:5px 8px">'+esc(it.unit)+'</td><td style="text-align:right;font-family:monospace;padding:5px 8px">'+fmtQ(N(it.qty))+'</td><td style="text-align:right;font-family:monospace;padding:5px 8px">'+s+' '+fmtP(N(it.price))+'</td><td style="text-align:right;font-family:monospace;padding:5px 8px;font-weight:500">'+s+' '+fmtB(N(it.qty)*N(it.price))+'</td></tr>';
     }
   });
 
   var apuHtml='';
   if(CFG.printApu){
-    apuHtml=`<div class="page-break">${runHdr}<h3 style="font-size:14px;color:${color};border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Análisis de Precios Unitarios</h3>`;
+    apuHtml='<div class="page-break">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Análisis de Precios Unitarios</h3>';
     items.forEach(it=>{
       if(it.t!=='it'||!apuData[it.id])return;
       let a=apuData[it.id], mo=a.secs[0].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
       let pct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
       let lt=a.ls.on?mo*(pct/100):0, tot=a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0)+lt;
-      apuHtml+=`<div class="avoid-break" style="margin-bottom:20px;border:1px solid #eee;border-radius:5px;overflow:hidden">
-        <div style="background:#f9f9f9;padding:8px;display:flex;justify-content:space-between;font-weight:600;color:${color}"><span>${esc(it.num)} — ${esc(it.name)}</span><span>${s} ${fmtP(tot)} / ${esc(it.unit)}</span></div>
-        <table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#fcfcfc;color:#666"><th style="text-align:left;padding:4px 8px">Recurso</th><th style="text-align:right">Unid</th><th style="text-align:right">Rend.</th><th style="text-align:right">P.U.</th><th style="text-align:right;padding-right:8px">Subtotal</th></tr></thead><tbody>`;
+      apuHtml+='<div class="avoid-break" style="margin-bottom:20px;border:1px solid #eee;border-radius:5px;overflow:hidden">' +
+        '<div style="background:#f9f9f9;padding:8px;display:flex;justify-content:space-between;font-weight:600;color:'+color+'"><span>'+esc(it.num)+' — '+esc(it.name)+'</span><span>'+s+' '+fmtP(tot)+' / '+esc(it.unit)+'</span></div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#fcfcfc;color:#666"><th style="text-align:left;padding:4px 8px">Recurso</th><th style="text-align:right">Unid</th><th style="text-align:right">Rend.</th><th style="text-align:right">P.U.</th><th style="text-align:right;padding-right:8px">Subtotal</th></tr></thead><tbody>';
       ['Mano de Obra','Materiales','Equipos','Subcontratos'].forEach((tn,si)=>{
-        a.secs[si].rows.forEach(r=>apuHtml+=`<tr style="border-top:1px solid #f5f5f5"><td style="padding:3px 8px">${esc(r.desc)} <small style="color:#999">(${tn})</small></td><td style="text-align:right">${esc(r.unit)}</td><td style="text-align:right">${fmtQ(N(r.qty))}</td><td style="text-align:right">${fmtP(N(r.price))}</td><td style="text-align:right;padding-right:8px">${fmtP(N(r.qty)*N(r.price))}</td></tr>`);
+        a.secs[si].rows.forEach(r=>apuHtml+='<tr style="border-top:1px solid #f5f5f5"><td style="padding:3px 8px">'+esc(r.desc)+' <small style="color:#999">('+tn+')</small></td><td style="text-align:right">'+esc(r.unit)+'</td><td style="text-align:right">'+fmtQ(N(r.qty))+'</td><td style="text-align:right">'+fmtP(N(r.price))+'</td><td style="text-align:right;padding-right:8px">'+fmtP(N(r.qty)*N(r.price))+'</td></tr>');
       });
-      apuHtml+=`<tr style="background:#fffdf0"><td colspan="4" style="padding:3px 8px">Leyes Sociales (${pct.toFixed(1)}%)</td><td style="text-align:right;padding-right:8px">${fmtP(lt)}</td></tr>
-        <tr style="background:#f0f4f8;font-weight:700;color:${color}"><td colspan="4" style="padding:5px 8px">TOTAL UNITARIO</td><td style="text-align:right;padding-right:8px">${s} ${fmtP(tot)}</td></tr></tbody></table></div>`;
+      apuHtml+='<tr style="background:#fffdf0"><td colspan="4" style="padding:3px 8px">Leyes Sociales ('+pct.toFixed(1)+'%)</td><td style="text-align:right;padding-right:8px">'+fmtP(lt)+'</td></tr>' +
+        '<tr style="background:#f0f4f8;font-weight:700;color:'+color+'"><td colspan="4" style="padding:5px 8px">TOTAL UNITARIO</td><td style="text-align:right;padding-right:8px">'+s+' '+fmtP(tot)+'</td></tr></tbody></table></div>';
     });
-    apuHtml+=`</div>`;
+    apuHtml+='</div>';
   }
 
   var cubHtml='';
   if(CFG.printCub){
-    cubHtml=`<div class="page-break">${runHdr}<h3 style="font-size:14px;color:${color};border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Memoria de Cubicaciones</h3>`;
+    cubHtml='<div class="page-break">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Memoria de Cubicaciones</h3>';
     items.forEach(it=>{
       if(it.t!=='it'||!tofData[it.id]||!tofData[it.id].length)return;
       let rows=tofData[it.id], total=rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
-      cubHtml+=`<div class="avoid-break" style="margin-bottom:20px">
-        <div style="font-weight:700;color:${color};margin-bottom:5px">${esc(it.num)} — ${esc(it.name)}</div>
-        <table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#f9f9f9;color:#666"><th style="text-align:left;padding:4px 8px">Descripción / Eje</th><th style="text-align:right">Cant.</th><th style="text-align:right">Ancho</th><th style="text-align:right">Largo</th><th style="text-align:right;padding-right:8px">Total</th></tr></thead><tbody>`;
-      rows.forEach(r=>cubHtml+=`<tr style="border-bottom:1px solid #eee"><td style="padding:3px 8px">${esc(r.desc)}</td><td style="text-align:right">${fmtQ(N(r.n))}</td><td style="text-align:right">${fmtQ(N(r.a))}</td><td style="text-align:right">${fmtQ(N(r.l))}</td><td style="text-align:right;padding-right:8px">${fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))}</td></tr>`);
-      cubHtml+=`<tr style="font-weight:700;background:#f0f4f8"><td colspan="4" style="padding:4px 8px">TOTAL PARTIDA</td><td style="text-align:right;padding-right:8px">${fmtQ(total)} ${esc(it.unit)}</td></tr></tbody></table></div>`;
+      cubHtml+='<div class="avoid-break" style="margin-bottom:20px">' +
+        '<div style="font-weight:700;color:'+color+';margin-bottom:5px">'+esc(it.num)+' — '+esc(it.name)+'</div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#f9f9f9;color:#666"><th style="text-align:left;padding:4px 8px">Descripción / Eje</th><th style="text-align:right">Cant.</th><th style="text-align:right">Ancho</th><th style="text-align:right">Largo</th><th style="text-align:right;padding-right:8px">Total</th></tr></thead><tbody>';
+      rows.forEach(r=>cubHtml+='<tr style="border-bottom:1px solid #eee"><td style="padding:3px 8px">'+esc(r.desc)+'</td><td style="text-align:right">'+fmtQ(N(r.n))+'</td><td style="text-align:right">'+fmtQ(N(r.a))+'</td><td style="text-align:right">'+fmtQ(N(r.l))+'</td><td style="text-align:right;padding-right:8px">'+fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))+'</td></tr>');
+      cubHtml+='<tr style="font-weight:700;background:#f0f4f8"><td colspan="4" style="padding:4px 8px">TOTAL PARTIDA</td><td style="text-align:right;padding-right:8px">'+fmtQ(total)+' '+esc(it.unit)+'</td></tr></tbody></table></div>';
     });
-    cubHtml+=`</div>`;
+    cubHtml+='</div>';
   }
 
-  var signatures=`<div style="display:flex;justify-content:space-around;margin-top:100px;page-break-inside:avoid">
-    <div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">REPRESENTANTE LEGAL</div><div style="font-size:9px">${esc(CFG.repLegal)}</div></div>
-    <div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">${esc(CFG.profName||profesional)}</div></div>
-  </div>`;
+  var signatures='<div style="display:flex;justify-content:space-around;margin-top:100px;page-break-inside:avoid">' +
+    '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">REPRESENTANTE LEGAL</div><div style="font-size:9px">'+esc(CFG.repLegal)+'</div></div>' +
+    '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">'+esc(CFG.profName||profesional)+'</div></div>' +
+    '</div>';
 
-  var footer=`<div style="position:fixed;bottom:5mm;left:10mm;right:10mm;text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div style="flex:1;text-align:left">${esc(CFG.companyAddress)} | ${esc(CFG.companyPhone)} | ${esc(CFG.companyEmail)}</div>
-      <div style="font-weight:600">Pág. <span class="pageNumber"></span> de <span class="totalPages"></span></div>
-    </div>
-  </div>`;
+  var footer='<div style="position:fixed;bottom:5mm;left:10mm;right:10mm;text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<div style="flex:1;text-align:left">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
+      '<div style="font-weight:600">Pág. <span class="pageNumber"></span> de <span class="totalPages"></span></div>' +
+    '</div>' +
+  '</div>';
 
   var win=window.open('','_blank');
-  win.document.write(`<html><head><title>Informe PresAI - ${esc(obra)}</title><style>
-    body{font-family:'IBM Plex Sans',sans-serif;margin:0;padding:0;color:#333}
-    table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #eee;padding:4px 6px}
-    .page-break{page-break-before:always}
-    .avoid-break{page-break-inside:avoid}
-    @media print{
-      @page{size:landscape;margin:15mm 10mm 20mm 10mm}
-      .footer-wrap{position:fixed;bottom:0;width:100%}
-    }
-    body { counter-reset: page; }
-    .pageNumber:after { counter-increment: page; content: counter(page); }
-    /* Nota: totalPages requiere JS o soporte avanzado de CSS print que varía por navegador */
-  </style></head><body>
-    ${CFG.printCover ? `
-    <div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">
-      ${CFG.coverImgUrl?`<img src="${CFG.coverImgUrl}" style="max-width:90%;max-height:50vh;margin-bottom:30px;object-fit:contain"/>`:''}
-      <h1 style="font-size:32px;color:${color};margin-bottom:10px">${esc(obra)}</h1>
-      <h2 style="font-size:18px;color:#666;margin-bottom:40px">PRESUPUESTO DE OBRA</h2>
-      <div style="font-size:14px;line-height:1.6">
-        <p><strong>Mandante:</strong> ${esc(mandante)}</p>
-        <p><strong>Ubicación:</strong> ${esc(ubic)}</p>
-        <p><strong>Fecha:</strong> ${esc(fecha)}</p>
-      </div>
-      ${footer}
-    </div>` : ''}
-    <div style="padding:10mm">
-      ${runHdr}
-      <h3 style="font-size:14px;color:${color};border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Presupuesto Detallado</h3>
-      <table><thead><tr style="background:#f9f9f9"><th>Ítem</th><th>Descripción</th><th style="text-align:center">Unid</th><th style="text-align:right">Cant.</th><th style="text-align:right">P.Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>${trows}</tbody></table>
-      <div style="width:250px;margin-left:auto;margin-top:20px;font-size:11px">
-        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>${s} ${fmtB(dc)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>${s} ${fmtB(ggV)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>${s} ${fmtB(util)}</span></div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:${color}"><span>TOTAL GENERAL</span><span>${s} ${fmtB(grand)}</span></div>
-      </div>
-      <p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">${numToWords(grand)}</p>
-      ${apuHtml || cubHtml ? '' : signatures}
-      ${footer}
-    </div>
-    ${apuHtml}
-    ${cubHtml}
-    ${apuHtml || cubHtml ? `<div style="padding:10mm;position:relative;min-height:200px">${signatures}${footer}</div>` : ''}
-    <script>
-      // Intento de calcular total de páginas post-render
-      window.onload = function() {
-        var total = document.querySelectorAll('.page-break').length + (document.querySelector('.page-break-after') ? 1 : 0) + 1;
-        // En landscape y con saltos manuales, esto es una aproximación.
-        // El estándar CSS 'counter(pages)' no es soportado en Chrome/Edge print preview directamente.
-      };
-    </script>
-  </body></html>`);
+  win.document.write('<html><head><title>Informe PresAI - '+esc(obra)+'</title><style>' +
+    'body{font-family:\'IBM Plex Sans\',sans-serif;margin:0;padding:0;color:#333}' +
+    'table{width:100%;border-collapse:collapse}' +
+    'th,td{border:1px solid #eee;padding:4px 6px}' +
+    '.page-break{page-break-before:always}' +
+    '.avoid-break{page-break-inside:avoid}' +
+    '@media print{' +
+      '@page{size:landscape;margin:15mm 10mm 20mm 10mm}' +
+      '.footer-wrap{position:fixed;bottom:0;width:100%}' +
+    '}' +
+    'body { counter-reset: page; }' +
+    '.pageNumber:after { counter-increment: page; content: counter(page); }' +
+  '</style></head><body>' +
+    (CFG.printCover ? '<div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">' +
+      (CFG.coverImgUrl?'<img src="'+CFG.coverImgUrl+'" style="max-width:90%;max-height:50vh;margin-bottom:30px;object-fit:contain"/>':'') +
+      '<h1 style="font-size:32px;color:'+color+';margin-bottom:10px">'+esc(obra)+'</h1>' +
+      '<h2 style="font-size:18px;color:#666;margin-bottom:40px">PRESUPUESTO DE OBRA</h2>' +
+      '<div style="font-size:14px;line-height:1.6">' +
+        '<p><strong>Mandante:</strong> '+esc(mandante)+'</p>' +
+        '<p><strong>Ubicación:</strong> '+esc(ubic)+'</p>' +
+        '<p><strong>Fecha:</strong> '+esc(fecha)+'</p>' +
+      '</div>' + footer + '</div>' : '') +
+    '<div style="padding:10mm">' + runHdr +
+      '<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Presupuesto Detallado</h3>' +
+      '<table><thead><tr style="background:#f9f9f9"><th>Ítem</th><th>Descripción</th><th style="text-align:center">Unid</th><th style="text-align:right">Cant.</th><th style="text-align:right">P.Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>'+trows+'</tbody></table>' +
+      '<div style="width:250px;margin-left:auto;margin-top:20px;font-size:11px">' +
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>'+s+' '+fmtB(dc)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>'+s+' '+fmtB(util)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
+      '</div>' +
+      '<p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">'+numToWords(grand)+'</p>' +
+      (apuHtml || cubHtml ? '' : signatures) + footer + '</div>' +
+    apuHtml + cubHtml +
+    (apuHtml || cubHtml ? '<div style="padding:10mm;position:relative;min-height:200px">'+signatures+footer+'</div>' : '') +
+  '</body></html>');
   win.document.close();
   setTimeout(()=>win.print(),500);
 }
@@ -736,55 +720,56 @@ function doPrint(){
 /* ── SETTINGS ── */
 function openSettings(){
   document.getElementById('ov').style.display='block';
-  document.getElementById('mc').innerHTML=`<div class="modal" style="max-width:600px">
-    <div class="mh"><h3>Configuración PresAI</h3><button class="btn-s" onclick="closeMod()">✕</button></div>
-    <div class="mb">
-      <div class="cfg-section"><h4>Moneda y Decimales</h4><div class="cfg-grid">
-        <div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;saveCFG();rb();rc();openSettings();">
-          <option value="CLP" ${CFG.currency==='CLP'?'selected':''}>CLP ($)</option>
-          <option value="USD" ${CFG.currency==='USD'?'selected':''}>USD (US$)</option>
-          <option value="UF" ${CFG.currency==='UF'?'selected':''}>UF</option>
-        </select></div>
-        <div class="cfg-field"><label>Paridad (1 ${sym()} = ? CLP)</label><input type="number" value="${CFG.parity}" oninput="CFG.parity=N(this.value);saveCFG();rc()" onfocus="this.select()"/></div>
-        <div class="cfg-field"><label>Dec. Cantidades</label><input type="number" value="${CFG.decimalsQty}" oninput="CFG.decimalsQty=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
-        <div class="cfg-field"><label>Dec. P.Unit (APU)</label><input type="number" value="${CFG.decimalsPrice}" oninput="CFG.decimalsPrice=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
-        <div class="cfg-field"><label>Dec. Totales</label><input type="number" value="${CFG.decimalsBudget}" oninput="CFG.decimalsBudget=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>
-      </div></div>
-      <div class="cfg-section"><h4>Empresa Constructora</h4><div class="cfg-grid">
-        <div class="cfg-field"><label>Nombre</label><input value="${esc(CFG.companyName)}" oninput="CFG.companyName=this.value;saveCFG();updBrand()"/></div>
-        <div class="cfg-field"><label>Tagline</label><input value="${esc(CFG.companyTagline)}" oninput="CFG.companyTagline=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Dirección</label><input value="${esc(CFG.companyAddress)}" oninput="CFG.companyAddress=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Teléfono / Celular</label><input value="${esc(CFG.companyPhone)}" oninput="CFG.companyPhone=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Email</label><input value="${esc(CFG.companyEmail)}" oninput="CFG.companyEmail=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Web</label><input value="${esc(CFG.companyWeb)}" oninput="CFG.companyWeb=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Color Informe</label><input type="color" value="${CFG.colorHeader}" oninput="CFG.colorHeader=this.value;saveCFG();applyColor()"/></div>
-        <div class="cfg-field"><label>Logo</label>
-          <div style="display:flex;gap:10px;align-items:center">
-            <button class="bs" onclick="document.getElementById('logoInp').click()">Subir Logo</button>
-            ${CFG.logoDataUrl?`<img src="${CFG.logoDataUrl}" style="height:30px;border:1px solid #eee"/>`:''}
-          </div>
-          <input type="file" id="logoInp" style="display:none" onchange="hLogo(this)"/>
-        </div>
-      </div></div>
-      <div class="cfg-section"><h4>Firmantes</h4><div class="cfg-grid">
-        <div class="cfg-field"><label>Rep. Legal</label><input value="${esc(CFG.repLegal)}" oninput="CFG.repLegal=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Profesional</label><input value="${esc(CFG.profName)}" oninput="CFG.profName=this.value;saveCFG()"/></div>
-      </div></div>
-      <div class="cfg-section"><h4>Impresión</h4><div class="chk-opts">
-        <label class="chk-opt"><input type="checkbox" ${CFG.printCover?'checked':''} onchange="CFG.printCover=this.checked;saveCFG()"> Portada</label>
-        <label class="chk-opt"><input type="checkbox" ${CFG.printApu?'checked':''} onchange="CFG.printApu=this.checked;saveCFG()"> APUs</label>
-        <label class="chk-opt"><input type="checkbox" ${CFG.printCub?'checked':''} onchange="CFG.printCub=this.checked;saveCFG()"> Cubicaciones</label>
-      </div></div>
-      <div class="cfg-section"><h4>Imagen Portada</h4>
-        <div style="display:flex;gap:15px;align-items:center">
-          <button class="bs" onclick="document.getElementById('covInp').click()">Subir Imagen Portada</button>
-          ${CFG.coverImgUrl?`<img src="${CFG.coverImgUrl}" style="height:40px;border:1px solid #eee"/>`:''}
-        </div>
-        <input type="file" id="covInp" style="display:none" onchange="hCov(this)"/>
-      </div>
-    </div>
-    <div class="mf"><button class="btn-p blue" onclick="closeMod()">Listo</button></div>
-  </div>`;
+  let html = '<div class="modal" style="max-width:600px">' +
+    '<div class="mh"><h3>Configuración PresAI</h3><button class="btn-s" onclick="closeMod()">✕</button></div>' +
+    '<div class="mb">' +
+      '<div class="cfg-section"><h4>Moneda y Decimales</h4><div class="cfg-grid">' +
+        '<div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;saveCFG();rb();rc();openSettings();">' +
+          '<option value="CLP" '+(CFG.currency==='CLP'?'selected':'')+'>CLP ($)</option>' +
+          '<option value="USD" '+(CFG.currency==='USD'?'selected':'')+'>USD (US$)</option>' +
+          '<option value="UF" '+(CFG.currency==='UF'?'selected':'')+'>UF</option>' +
+        '</select></div>' +
+        '<div class="cfg-field"><label>Paridad (1 '+sym()+' = ? CLP)</label><input type="number" value="'+CFG.parity+'" oninput="CFG.parity=N(this.value);saveCFG();rc()" onfocus="this.select()"/></div>' +
+        '<div class="cfg-field"><label>Dec. Cantidades</label><input type="number" value="'+CFG.decimalsQty+'" oninput="CFG.decimalsQty=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>' +
+        '<div class="cfg-field"><label>Dec. P.Unit (APU)</label><input type="number" value="'+CFG.decimalsPrice+'" oninput="CFG.decimalsPrice=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>' +
+        '<div class="cfg-field"><label>Dec. Totales</label><input type="number" value="'+CFG.decimalsBudget+'" oninput="CFG.decimalsBudget=N(this.value);saveCFG();rb()" onfocus="this.select()"/></div>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Empresa Constructora</h4><div class="cfg-grid">' +
+        '<div class="cfg-field"><label>Nombre</label><input value="'+esc(CFG.companyName)+'" oninput="CFG.companyName=this.value;saveCFG();updBrand()"/></div>' +
+        '<div class="cfg-field"><label>Tagline</label><input value="'+esc(CFG.companyTagline)+'" oninput="CFG.companyTagline=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Dirección</label><input value="'+esc(CFG.companyAddress)+'" oninput="CFG.companyAddress=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Teléfono / Celular</label><input value="'+esc(CFG.companyPhone)+'" oninput="CFG.companyPhone=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Email</label><input value="'+esc(CFG.companyEmail)+'" oninput="CFG.companyEmail=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Web</label><input value="'+esc(CFG.companyWeb)+'" oninput="CFG.companyWeb=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Color Informe</label><input type="color" value="'+CFG.colorHeader+'" oninput="CFG.colorHeader=this.value;saveCFG();applyColor()"/></div>' +
+        '<div class="cfg-field"><label>Logo</label>' +
+          '<div style="display:flex;gap:10px;align-items:center">' +
+            '<button class="bs" onclick="document.getElementById(\'logoInp\').click()">Subir Logo</button>' +
+            (CFG.logoDataUrl?'<img src="'+CFG.logoDataUrl+'" style="height:30px;border:1px solid #eee"/>':'') +
+          '</div>' +
+          '<input type="file" id="logoInp" style="display:none" onchange="hLogo(this)"/>' +
+        '</div>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Firmantes</h4><div class="cfg-grid">' +
+        '<div class="cfg-field"><label>Rep. Legal</label><input value="'+esc(CFG.repLegal)+'" oninput="CFG.repLegal=this.value;saveCFG()"/></div>' +
+        '<div class="cfg-field"><label>Profesional</label><input value="'+esc(CFG.profName)+'" oninput="CFG.profName=this.value;saveCFG()"/></div>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Impresión</h4><div class="chk-opts">' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.printCover?'checked':'')+' onchange="CFG.printCover=this.checked;saveCFG()"> Portada</label>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.printApu?'checked':'')+' onchange="CFG.printApu=this.checked;saveCFG()"> APUs</label>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.printCub?'checked':'')+' onchange="CFG.printCub=this.checked;saveCFG()"> Cubicaciones</label>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Imagen Portada</h4>' +
+        '<div style="display:flex;gap:15px;align-items:center">' +
+          '<button class="bs" onclick="document.getElementById(\'covInp\').click()">Subir Imagen Portada</button>' +
+          (CFG.coverImgUrl?'<img src="'+CFG.coverImgUrl+'" style="height:40px;border:1px solid #eee"/>':'') +
+        '</div>' +
+        '<input type="file" id="covInp" style="display:none" onchange="hCov(this)"/>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mf"><button class="btn-p blue" onclick="closeMod()">Listo</button></div>' +
+  '</div>';
+  document.getElementById('mc').innerHTML = html;
 }
 function hLogo(i){let r=new FileReader();r.onload=e=>{CFG.logoDataUrl=e.target.result;saveCFG();updLogoHdr();openSettings();};r.readAsDataURL(i.files[0]);}
 function hCov(i){let r=new FileReader();r.onload=e=>{CFG.coverImgUrl=e.target.result;saveCFG();openSettings();};r.readAsDataURL(i.files[0]);}
@@ -795,7 +780,7 @@ function newProject(){
   currentProjectId=null; isDirty=false;
   items=[{id:gid(),t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0},{id:gid(),t:'it',num:'1.1',name:'',unit:'',qty:0,price:0}];
   ggItems=[]; apuData={}; tofData={};
-  CFG.coverImgUrl = ''; // Borrar imagen de portada al crear nuevo proyecto
+  CFG.coverImgUrl = ''; 
   ['pObra','pMandante','pUbicacion','pProfesional'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('pFecha').value=new Date().toISOString().split('T')[0];
   rb(); renderGG(); updBrand(); closeMod();
@@ -812,14 +797,22 @@ function saveProject(){
 function openProjects(){
   let idx=getIdx();
   document.getElementById('ov').style.display='block';
-  document.getElementById('mc').innerHTML=`<div class="modal" style="max-width:500px">
-    <div class="mh"><h3>Mis Proyectos</h3><button class="btn-s" onclick="closeMod()">✕</button></div>
-    <div class="mb">
-      <button class="btn-p blue" style="width:100%;margin-bottom:15px" onclick="newProject()">+ Crear Nuevo Proyecto</button>
-      ${idx.map(p=>`<div style="padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
-      <div onclick="loadP('${p.id}')" style="cursor:pointer"><strong>${esc(p.obra)}</strong><br/><small>${p.savedAt}</small></div>
-      <button class="bs del" onclick="delP('${p.id}')">×</button></div>`).join('') || 'No hay proyectos'}</div>
-  </div>`;
+  let html = '<div class="modal" style="max-width:500px">' +
+    '<div class="mh"><h3>Mis Proyectos</h3><button class="btn-s" onclick="closeMod()">✕</button></div>' +
+    '<div class="mb">' +
+      '<button class="btn-p blue" style="width:100%;margin-bottom:15px" onclick="newProject()">+ Crear Nuevo Proyecto</button>';
+  
+  if(idx.length === 0) {
+    html += '<div style="padding:20px;text-align:center;color:#94a3b8">No hay proyectos guardados</div>';
+  } else {
+    idx.forEach(p => {
+      html += '<div style="padding:10px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">' +
+        '<div onclick="loadP(\''+p.id+'\')" style="cursor:pointer"><strong>'+esc(p.obra)+'</strong><br/><small>'+p.savedAt+'</small></div>' +
+        '<button class="bs del" onclick="delP(\''+p.id+'\')">×</button></div>';
+    });
+  }
+  html += '</div></div>';
+  document.getElementById('mc').innerHTML = html;
 }
 function loadP(id){
   let p=lsL('od_proj_'+id); if(!p)return;

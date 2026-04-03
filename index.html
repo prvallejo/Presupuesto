@@ -228,7 +228,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
       <button class="hbtn" onclick="newProject()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo</button>
       <button class="hbtn" onclick="saveProject()"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
       <button class="hbtn green" onclick="doPrint()"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir Informe</button>
-      <button class="hbtn" onclick="openSettings()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+      <button class="hbtn" onclick="openSettings()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
     </div>
   </header>
 
@@ -306,10 +306,9 @@ let apuData = {};
 let tofData = {}; 
 let currentProjectId = null;
 let isDirty = false;
-let ic = 900;
 
 const CFG_DEF = {
-  currency:'CLP', decimalsQty:2, decimalsPrice:0, decimalsBudget:0,
+  currency:'CLP', parity:1, decimalsQty:2, decimalsPrice:0, decimalsBudget:0,
   companyName:'CONSTRCRITP GERÓNIMO AIRE DEL SUO.', companyTagline:'Construcción Civil · Chile',
   companyRut:'', companyAddress:'', companyPhone:'', companyEmail:'', companyWeb:'',
   repLegal:'', repLegalRut:'', profName:'', profRut:'',
@@ -327,10 +326,13 @@ function getIdx(){return lsL('od_index')||[];}
 function saveIdx(idx){lsS('od_index',idx);}
 
 function saveCFG(){lsS('od_cfg',CFG);}
-function loadCFG(){let x=lsL('od_cfg');if(x)CFG=Object.assign(CFG,x);applyColor();updBrand();}
+function loadCFG(){let x=lsL('od_cfg');if(x)CFG=Object.assign(CFG,x);applyColor();updBrand();updLogoHdr();}
 function applyColor(){document.documentElement.style.setProperty('--navy',CFG.colorHeader);}
 function updBrand(){
   document.getElementById('hdrProjName').textContent = document.getElementById('pObra').value || (currentProjectId?'Proyecto':'Nuevo proyecto');
+}
+function updLogoHdr(){
+  if(CFG.logoDataUrl) document.getElementById('logoWrap').innerHTML=`<img src="${CFG.logoDataUrl}"/>`;
 }
 
 function N(v){return parseFloat(v)||0;}
@@ -662,9 +664,13 @@ function doPrint(){
     cubHtml+=`</div>`;
   }
 
-  var signatures=`<div style="display:flex;justify-content:space-around;margin-top:50px;page-break-inside:avoid">
+  var signatures=`<div style="display:flex;justify-content:space-around;margin-top:100px;page-break-inside:avoid">
     <div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">REPRESENTANTE LEGAL</div><div style="font-size:9px">${esc(CFG.repLegal)}</div></div>
     <div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">${esc(CFG.profName||profesional)}</div></div>
+  </div>`;
+
+  var footer=`<div style="position:fixed;bottom:10mm;left:10mm;right:10mm;text-align:center;font-size:8px;color:#94a3b8;border-top:1px solid #eee;padding-top:5px">
+    ${esc(CFG.companyAddress)} | ${esc(CFG.companyPhone)} | ${esc(CFG.companyEmail)} | ${esc(CFG.companyWeb)}
   </div>`;
 
   var win=window.open('','_blank');
@@ -674,18 +680,19 @@ function doPrint(){
     th,td{border:1px solid #eee;padding:4px 6px}
     .page-break{page-break-before:always}
     .avoid-break{page-break-inside:avoid}
-    @media print{@page{size:landscape}}
+    @media print{@page{size:landscape;margin:10mm}}
   </style></head><body>
-    <div style="min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always">
-      ${CFG.coverImgUrl?`<img src="${CFG.coverImgUrl}" style="max-width:90%;max-height:60vh;margin-bottom:30px;object-fit:contain"/>`:''}
-      <h1 style="font-size:32px;color:${color}">${esc(obra)}</h1>
-      <h2 style="font-size:18px;color:#666">PRESUPUESTO DE OBRA</h2>
-      <div style="margin-top:40px;font-size:14px">
+    ${CFG.printCover ? `
+    <div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">
+      ${CFG.coverImgUrl?`<img src="${CFG.coverImgUrl}" style="max-width:90%;max-height:50vh;margin-bottom:30px;object-fit:contain"/>`:''}
+      <h1 style="font-size:32px;color:${color};margin-bottom:10px">${esc(obra)}</h1>
+      <h2 style="font-size:18px;color:#666;margin-bottom:40px">PRESUPUESTO DE OBRA</h2>
+      <div style="font-size:14px;line-height:1.6">
         <p><strong>Mandante:</strong> ${esc(mandante)}</p>
         <p><strong>Ubicación:</strong> ${esc(ubic)}</p>
         <p><strong>Fecha:</strong> ${esc(fecha)}</p>
       </div>
-    </div>
+    </div>` : ''}
     <div style="padding:10mm">
       ${runHdr}
       <h3 style="font-size:14px;color:${color};border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Presupuesto Detallado</h3>
@@ -698,10 +705,11 @@ function doPrint(){
       </div>
       <p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">${numToWords(grand)}</p>
       ${apuHtml || cubHtml ? '' : signatures}
+      ${footer}
     </div>
     ${apuHtml}
     ${cubHtml}
-    ${apuHtml || cubHtml ? `<div style="padding:10mm">${signatures}</div>` : ''}
+    ${apuHtml || cubHtml ? `<div style="padding:10mm;position:relative;min-height:200px">${signatures}${footer}</div>` : ''}
   </body></html>`);
   win.document.close();
   setTimeout(()=>win.print(),500);
@@ -714,20 +722,31 @@ function openSettings(){
     <div class="mh"><h3>Configuración PresAI</h3><button class="btn-s" onclick="closeMod()">✕</button></div>
     <div class="mb">
       <div class="cfg-section"><h4>Moneda y Decimales</h4><div class="cfg-grid">
-        <div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;saveCFG();rb();rc();">
+        <div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;saveCFG();rb();rc();openSettings();">
           <option value="CLP" ${CFG.currency==='CLP'?'selected':''}>CLP ($)</option>
           <option value="USD" ${CFG.currency==='USD'?'selected':''}>USD (US$)</option>
           <option value="UF" ${CFG.currency==='UF'?'selected':''}>UF</option>
         </select></div>
+        <div class="cfg-field"><label>Paridad (1 ${sym()} = ? CLP)</label><input type="number" value="${CFG.parity}" oninput="CFG.parity=N(this.value);saveCFG();rc()"/></div>
         <div class="cfg-field"><label>Dec. Cantidades</label><input type="number" value="${CFG.decimalsQty}" oninput="CFG.decimalsQty=N(this.value);saveCFG();rb()"/></div>
         <div class="cfg-field"><label>Dec. P.Unit (APU)</label><input type="number" value="${CFG.decimalsPrice}" oninput="CFG.decimalsPrice=N(this.value);saveCFG();rb()"/></div>
         <div class="cfg-field"><label>Dec. Totales</label><input type="number" value="${CFG.decimalsBudget}" oninput="CFG.decimalsBudget=N(this.value);saveCFG();rb()"/></div>
       </div></div>
-      <div class="cfg-section"><h4>Empresa</h4><div class="cfg-grid">
+      <div class="cfg-section"><h4>Empresa Constructora</h4><div class="cfg-grid">
         <div class="cfg-field"><label>Nombre</label><input value="${esc(CFG.companyName)}" oninput="CFG.companyName=this.value;saveCFG();updBrand()"/></div>
         <div class="cfg-field"><label>Tagline</label><input value="${esc(CFG.companyTagline)}" oninput="CFG.companyTagline=this.value;saveCFG()"/></div>
-        <div class="cfg-field"><label>Color</label><input type="color" value="${CFG.colorHeader}" oninput="CFG.colorHeader=this.value;saveCFG();applyColor()"/></div>
-        <div class="cfg-field"><label>Logo</label><button class="bs" onclick="document.getElementById('logoInp').click()">Subir Logo</button><input type="file" id="logoInp" style="display:none" onchange="hLogo(this)"/></div>
+        <div class="cfg-field"><label>Dirección</label><input value="${esc(CFG.companyAddress)}" oninput="CFG.companyAddress=this.value;saveCFG()"/></div>
+        <div class="cfg-field"><label>Teléfono / Celular</label><input value="${esc(CFG.companyPhone)}" oninput="CFG.companyPhone=this.value;saveCFG()"/></div>
+        <div class="cfg-field"><label>Email</label><input value="${esc(CFG.companyEmail)}" oninput="CFG.companyEmail=this.value;saveCFG()"/></div>
+        <div class="cfg-field"><label>Web</label><input value="${esc(CFG.companyWeb)}" oninput="CFG.companyWeb=this.value;saveCFG()"/></div>
+        <div class="cfg-field"><label>Color Informe</label><input type="color" value="${CFG.colorHeader}" oninput="CFG.colorHeader=this.value;saveCFG();applyColor()"/></div>
+        <div class="cfg-field"><label>Logo</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="bs" onclick="document.getElementById('logoInp').click()">Subir Logo</button>
+            ${CFG.logoDataUrl?`<img src="${CFG.logoDataUrl}" style="height:30px;border:1px solid #eee"/>`:''}
+          </div>
+          <input type="file" id="logoInp" style="display:none" onchange="hLogo(this)"/>
+        </div>
       </div></div>
       <div class="cfg-section"><h4>Firmantes</h4><div class="cfg-grid">
         <div class="cfg-field"><label>Rep. Legal</label><input value="${esc(CFG.repLegal)}" oninput="CFG.repLegal=this.value;saveCFG()"/></div>
@@ -738,13 +757,19 @@ function openSettings(){
         <label class="chk-opt"><input type="checkbox" ${CFG.printApu?'checked':''} onchange="CFG.printApu=this.checked;saveCFG()"> APUs</label>
         <label class="chk-opt"><input type="checkbox" ${CFG.printCub?'checked':''} onchange="CFG.printCub=this.checked;saveCFG()"> Cubicaciones</label>
       </div></div>
-      <div class="cfg-section"><h4>Portada</h4><button class="bs" onclick="document.getElementById('covInp').click()">Subir Imagen Portada</button><input type="file" id="covInp" style="display:none" onchange="hCov(this)"/></div>
+      <div class="cfg-section"><h4>Imagen Portada</h4>
+        <div style="display:flex;gap:15px;align-items:center">
+          <button class="bs" onclick="document.getElementById('covInp').click()">Subir Imagen Portada</button>
+          ${CFG.coverImgUrl?`<img src="${CFG.coverImgUrl}" style="height:40px;border:1px solid #eee"/>`:''}
+        </div>
+        <input type="file" id="covInp" style="display:none" onchange="hCov(this)"/>
+      </div>
     </div>
     <div class="mf"><button class="btn-p blue" onclick="closeMod()">Listo</button></div>
   </div>`;
 }
-function hLogo(i){let r=new FileReader();r.onload=e=>{CFG.logoDataUrl=e.target.result;saveCFG();document.getElementById('logoWrap').innerHTML=`<img src="${CFG.logoDataUrl}"/>`;};r.readAsDataURL(i.files[0]);}
-function hCov(i){let r=new FileReader();r.onload=e=>{CFG.coverImgUrl=e.target.result;saveCFG();};r.readAsDataURL(i.files[0]);}
+function hLogo(i){let r=new FileReader();r.onload=e=>{CFG.logoDataUrl=e.target.result;saveCFG();updLogoHdr();openSettings();};r.readAsDataURL(i.files[0]);}
+function hCov(i){let r=new FileReader();r.onload=e=>{CFG.coverImgUrl=e.target.result;saveCFG();openSettings();};r.readAsDataURL(i.files[0]);}
 
 /* ── PROJECT MANAGER ── */
 function newProject(){

@@ -79,12 +79,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 
 /* ── BUDGET TABLE ── */
 .tbl-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
-.tbl-hdr{display:grid;grid-template-columns:60px minmax(180px,1fr) 54px 82px 96px 96px 130px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
+.tbl-hdr{display:grid;grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
 .tbl-hdr span{padding:9px 6px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px}
 .tbl-hdr .r{text-align:right}
 .row-ch,.row-it{display:grid;border-bottom:1px solid var(--border);padding:0 8px;align-items:center}
-.row-ch{grid-template-columns:60px minmax(180px,1fr) 54px 82px 96px 96px 130px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
-.row-it{grid-template-columns:60px minmax(180px,1fr) 54px 82px 96px 96px 130px}
+.row-ch{grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
+.row-it{grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px}
 .row-it:hover{background:#f6f8ff}.row-ch:hover{background:rgba(30,58,95,.08)}
 .ri{font-family:var(--ff);font-size:13px;color:var(--txt);background:transparent;border:none;outline:none;width:100%;padding:10px 6px;line-height:1.3}
 .ri::placeholder{color:var(--txt3);font-style:italic}.ri:focus::placeholder{opacity:0}
@@ -150,8 +150,8 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .at th.r{text-align:right}
 .at td{padding:3px 4px;border-bottom:1px solid var(--border)}
 .at tr:last-child td{border-bottom:none}
-.at input{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px 3px}
-.at input:focus{border-bottom-color:var(--navy)}
+.at input, .at select{font-family:var(--ff);font-size:12px;background:transparent;border:none;border-bottom:1px solid transparent;outline:none;width:100%;color:var(--txt);padding:2px 3px}
+.at input:focus, .at select:focus{border-bottom-color:var(--navy)}
 .at .r{text-align:right;font-family:var(--mono)}.at .mn{font-family:var(--mono);text-align:right;font-size:11px}
 .ls-box{background:rgba(180,83,8,.04);border:1px solid rgba(180,83,8,.2);border-left:4px solid var(--amber);border-radius:0 8px 8px 0;padding:12px 14px;margin-top:10px}
 .ls-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
@@ -176,11 +176,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 
 /* ── PRINT STYLES ── */
 @media print {
-  @page { size: landscape; margin: 10mm; }
+  @page { size: landscape; margin: 10mm 10mm 25mm 10mm; }
   body { background: #fff; font-size: 10pt; }
   .no-print { display: none !important; }
   .page-break { page-break-before: always; }
   .avoid-break { page-break-inside: avoid; }
+  .footer-wrap { position: fixed; bottom: 0; width: 100%; height: 20mm; }
 }
 
 /* ── CONFIG MODAL ── */
@@ -193,12 +194,6 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .cfg-field input:focus{border-color:var(--navy)}
 .chk-opts{display:flex;flex-direction:column;gap:8px}
 .chk-opt{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt);cursor:pointer}
-.upload-zone{border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:all .2s}
-.upload-zone:hover{border-color:var(--navy);background:var(--bg2)}
-.upload-zone p{font-size:11px;color:var(--txt2);margin-top:8px}
-.color-row{display:flex;align-items:center;gap:10px}
-.color-row input[type=color]{width:34px;height:34px;padding:0;border:none;background:none;cursor:pointer}
-#chex{font-family:var(--mono);font-size:12px;color:var(--txt2)}
 </style>
 </head>
 <body>
@@ -317,6 +312,9 @@ const CFG_DEF = {
 };
 let CFG = Object.assign({}, CFG_DEF);
 
+const UNITS_BUDGET = ['cu','gl','m3','m2','m','kg','un','día','mes','global'];
+const UNITS_APU = ['hd','hr','plg','plancha','lts','saco','cu','gl','m3','m2','m','kg','un','día','mes'];
+
 /* ── UTILS ── */
 function gid(){return 'id_'+Math.random().toString(36).substr(2,9);}
 function lsS(k,v){localStorage.setItem(k,JSON.stringify(v));}
@@ -394,7 +392,9 @@ function rb(){
     return `<div class="row-it" data-id="${it.id}">
       <input class="ri mono" data-field="num" data-id="${it.id}" placeholder="N°" value="${esc(it.num)}"/>
       <input class="ri" data-field="name" data-id="${it.id}" placeholder="Descripción..." value="${esc(it.name)}"/>
-      <input class="ri" style="width:50px" data-field="unit" data-id="${it.id}" placeholder="unid" value="${esc(it.unit)}"/>
+      <select class="ri" style="width:65px;padding:10px 2px" data-field="unit" data-id="${it.id}" onchange="uUnit('${it.id}',this.value)">
+        ${UNITS_BUDGET.map(u=>`<option value="${u}" ${it.unit===u?'selected':''}>${u}</option>`).join('')}
+      </select>
       <input class="ri r" data-field="qty" data-id="${it.id}" placeholder="0" value="${fmtQ(N(it.qty))}" onfocus="this.select()"/>
       <input class="ri r" data-field="price" data-id="${it.id}" placeholder="P.Unit." value="${fmtP(N(it.price))}" onfocus="this.select()"/>
       <span class="span-tot">${sym()} ${fmtB(tot)}</span>
@@ -406,6 +406,8 @@ function rb(){
   }).join('');
   rc();refreshApuTab();
 }
+
+function uUnit(id,v){items=items.map(x=>x.id===id?Object.assign(x,{unit:v}):x);markUnsaved();}
 
 function initEvents(){
   document.getElementById('brows').addEventListener('input',function(e){
@@ -510,7 +512,10 @@ function renderApuEdit(id){
       <table class="at"><thead><tr><th>Descripción</th><th>Unid</th><th class="r">Rend.</th><th class="r">P.U.</th><th class="r">Subtotal</th><th></th></tr></thead><tbody>`;
     rows.forEach((r,ri)=>html+=`<tr>
       <td><input value="${esc(r.desc)}" oninput="uapu('${id}',${si},${ri},'desc',this.value)"/></td>
-      <td><input style="width:40px" value="${esc(r.unit)}" oninput="uapu('${id}',${si},${ri},'unit',this.value)"/></td>
+      <td><select style="width:65px" onchange="uapu('${id}',${si},${ri},'unit',this.value)">
+        ${UNITS_APU.map(u=>`<option value="${u}" ${r.unit===u?'selected':''}>${u}</option>`).join('')}
+        <option value="%" ${r.unit==='%'?'selected':''}>%</option>
+      </select></td>
       <td><input class="r" type="text" value="${fmtQ(N(r.qty))}" oninput="uapu('${id}',${si},${ri},'qty',this.value)" onfocus="this.select()"/></td>
       <td><input class="r" type="text" value="${fmtP(N(r.price))}" oninput="uapu('${id}',${si},${ri},'price',this.value)" onfocus="this.select()"/></td>
       <td class="r mn" id="sub-${id}-${si}-${ri}">${fmtP(N(r.qty)*N(r.price))}</td>
@@ -537,8 +542,16 @@ function renderApuEdit(id){
 function aapu(id,si){apuData[id].secs[si].rows.push({desc:'',unit:'',qty:1,price:0});renderApuEdit(id);markUnsaved();}
 function uapu(id,si,ri,f,v){
   if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
-  apuData[id].secs[si].rows[ri][f]=v;
   let a=apuData[id], r=a.secs[si].rows[ri];
+  r[f]=v;
+  if(f==='desc' && (v.toLowerCase().includes('perdida') || v.toLowerCase().includes('pérdida'))){
+    r.unit = '%';
+    if(ri > 0){
+      let prev = a.secs[si].rows[ri-1];
+      r.price = N(prev.qty) * N(prev.price);
+    }
+    renderApuEdit(id);
+  }
   let subEl = document.getElementById(`sub-${id}-${si}-${ri}`);
   if(subEl) subEl.textContent = fmtP(N(r.qty)*N(r.price));
   let st = a.secs[si].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
@@ -669,10 +682,10 @@ function doPrint(){
     '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">'+esc(CFG.profName||profesional)+'</div></div>' +
     '</div>';
 
-  var footer='<div style="position:fixed;bottom:5mm;left:10mm;right:10mm;text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+  var footer='<div class="footer-wrap" style="text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:0 10mm">' +
       '<div style="flex:1;text-align:left">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
-      '<div style="font-weight:600">Pág. <span class="pageNumber"></span> de <span class="totalPages"></span></div>' +
+      '<div style="font-weight:600">Pág. <span class="pageNumber"></span></div>' +
     '</div>' +
   '</div>';
 
@@ -684,8 +697,8 @@ function doPrint(){
     '.page-break{page-break-before:always}' +
     '.avoid-break{page-break-inside:avoid}' +
     '@media print{' +
-      '@page{size:landscape;margin:15mm 10mm 20mm 10mm}' +
-      '.footer-wrap{position:fixed;bottom:0;width:100%}' +
+      '@page{size:landscape;margin:10mm 10mm 25mm 10mm}' +
+      '.footer-wrap{position:fixed;bottom:0;width:100%;height:20mm;background:white}' +
     '}' +
     'body { counter-reset: page; }' +
     '.pageNumber:after { counter-increment: page; content: counter(page); }' +

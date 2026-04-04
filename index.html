@@ -79,12 +79,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 
 /* ── BUDGET TABLE ── */
 .tbl-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
-.tbl-hdr{display:grid;grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
+.tbl-hdr{display:grid;grid-template-columns:50px minmax(120px,1fr) 55px 70px 110px 110px 140px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
 .tbl-hdr span{padding:9px 6px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px}
 .tbl-hdr .r{text-align:right}
 .row-ch,.row-it{display:grid;border-bottom:1px solid var(--border);padding:0 8px;align-items:center}
-.row-ch{grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
-.row-it{grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px}
+.row-ch{grid-template-columns:50px minmax(120px,1fr) 55px 70px 110px 110px 140px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
+.row-it{grid-template-columns:50px minmax(120px,1fr) 55px 70px 110px 110px 140px}
 .row-it:hover{background:#f6f8ff}.row-ch:hover{background:rgba(30,58,95,.08)}
 .ri{font-family:var(--ff);font-size:13px;color:var(--txt);background:transparent;border:none;outline:none;width:100%;padding:10px 6px;line-height:1.3}
 .ri::placeholder{color:var(--txt3);font-style:italic}.ri:focus::placeholder{opacity:0}
@@ -780,7 +780,7 @@ function genPrintHtml(){
     '@media print{' +
       'body{counter-reset:page;position:relative}' +
       'body::before{content:"PresAI Software avanzado de presupuesto";position:fixed;bottom:25mm;left:50%;transform:translateX(-50%);opacity:0.08;font-size:14px;color:#999;pointer-events:none;z-index:1}' +
-      '.pageNumber::after{counter-increment:page;content:counter(page)}' +
+      '.pageNumber{counter-increment:page;content:counter(page)}' +
       '.print-footer{display:flex !important}' +
     '}' +
   '</style></head><body>';
@@ -817,8 +817,12 @@ function genPrintHtml(){
     footer +
   '</body></html>';
 
-  return html;
-}
+// Inyectar números de página correctos de forma secuencial
+  let pageCounter = 1;
+  while(html.includes('PAGE_NUM')) {
+    html = html.replace('PAGE_NUM', pageCounter++);
+  }
+  return html;}
 
 function doPrint(){
   var html = genPrintHtml();

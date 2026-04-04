@@ -667,7 +667,7 @@ function utof(id,ri,f,v){
 function dtof(id,ri){tofData[id].splice(ri,1);renderTof(id);markUnsaved();}
 
 /* ── PRINT ── */
-function doPrint(){
+function genPrintHtml(){
   var obra=document.getElementById('pObra').value||'Sin nombre';
   var mandante=document.getElementById('pMandante').value;
   var ubic=document.getElementById('pUbicacion').value;
@@ -696,13 +696,13 @@ function doPrint(){
 
   var apuHtml='';
   if(CFG.printApu){
-    apuHtml='<div class="page-break">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Análisis de Precios Unitarios</h3>';
+    apuHtml='<div class="page-break" style="padding:10mm;padding-bottom:30mm">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Análisis de Precios Unitarios</h3>';
     items.forEach(it=>{
       if(it.t!=='it'||!apuData[it.id])return;
       let a=apuData[it.id], mo=a.secs[0].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
       let pct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
       let lt=a.ls.on?mo*(pct/100):0, tot=a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0)+lt;
-      apuHtml+=(CFG.apuPerPage?'<div class="page-break">':'')+'<div class="avoid-break" style="margin-bottom:20px;border:1px solid #eee;border-radius:5px;overflow:hidden">' +
+      apuHtml+=(CFG.apuPerPage?'<div class="page-break" style="padding:10mm;padding-bottom:30mm">':'')+'<div class="avoid-break" style="margin-bottom:20px;border:1px solid #eee;border-radius:5px;overflow:hidden">' +
         '<div style="background:#f9f9f9;padding:8px;display:flex;justify-content:space-between;font-weight:600;color:'+color+'"><span>'+esc(it.num)+' — '+esc(it.name)+'</span><span>'+s+' '+fmtP(tot)+' / '+esc(it.unit)+'</span></div>' +
         '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#fcfcfc;color:#666"><th style="text-align:left;padding:4px 8px">Recurso</th><th style="text-align:right">Unid</th><th style="text-align:right">Rend.</th><th style="text-align:right">P.U.</th><th style="text-align:right;padding-right:8px">Subtotal</th></tr></thead><tbody>';
       ['Mano de Obra','Materiales','Equipos','Subcontratos'].forEach((tn,si)=>{
@@ -716,11 +716,11 @@ function doPrint(){
 
   var cubHtml='';
   if(CFG.printCub){
-    cubHtml='<div class="page-break">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Memoria de Cubicaciones</h3>';
+    cubHtml='<div class="page-break" style="padding:10mm;padding-bottom:30mm">'+runHdr+'<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Memoria de Cubicaciones</h3>';
     items.forEach(it=>{
       if(it.t!=='it'||!tofData[it.id]||!tofData[it.id].length)return;
       let rows=tofData[it.id], total=rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
-      cubHtml+=(CFG.cubPerPage?'<div class="page-break">':'')+'<div class="avoid-break" style="margin-bottom:20px">' +
+      cubHtml+=(CFG.cubPerPage?'<div class="page-break" style="padding:10mm;padding-bottom:30mm">':'')+'<div class="avoid-break" style="margin-bottom:20px">' +
         '<div style="font-weight:700;color:'+color+';margin-bottom:5px">'+esc(it.num)+' — '+esc(it.name)+'</div>' +
         '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#f9f9f9;color:#666"><th style="text-align:left;padding:4px 8px">Descripción / Eje</th><th style="text-align:right">Cant.</th><th style="text-align:right">Ancho</th><th style="text-align:right">Largo</th><th style="text-align:right;padding-right:8px">Total</th></tr></thead><tbody>';
       rows.forEach(r=>cubHtml+='<tr style="border-bottom:1px solid #eee"><td style="padding:3px 8px">'+esc(r.desc)+'</td><td style="text-align:right">'+fmtQ(N(r.n))+'</td><td style="text-align:right">'+fmtQ(N(r.a))+'</td><td style="text-align:right">'+fmtQ(N(r.l))+'</td><td style="text-align:right;padding-right:8px">'+fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))+'</td></tr>');
@@ -734,32 +734,25 @@ function doPrint(){
     '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">'+esc(CFG.profName||profesional)+'</div></div>' +
     '</div>';
 
-  var footer='<div style="text-align:center;font-size:9px;color:#64748b;border-top:1px solid #eee;padding-top:3px;position:fixed;bottom:0;left:0;right:0;background:#fff;padding:3px 8mm">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center">' +
-      '<div style="flex:1;text-align:left;font-size:8px">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
+  var footer='<div style="text-align:center;font-size:9px;color:#64748b;border-top:1px solid #eee;padding-top:3px;position:fixed;bottom:8mm;left:8mm;right:8mm;background:#fff;padding:3px 0">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;font-size:8px">' +
+      '<div style="flex:1;text-align:left">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
       '<div style="font-weight:600">Pág. <span class="pageNumber"></span></div>' +
     '</div>' +
   '</div>';
 
-  var prorrateMsg='';
-  if(CFG.ggProrrateado) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:5px">Gastos Generales $ __________ Prorrateado en APU</div>';
-  if(CFG.utilProrrateado) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:2px">Utilidad $ __________ Prorrateada en APU</div>';
-  if(CFG.impProrrateado && pImp>0) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:2px">Imprevistos $ __________ Prorrateados en APU</div>';
-
-  var win=window.open('','_blank');
-  win.document.write('<html><head><title>Informe PresAI - '+esc(obra)+'</title><style>' +
-    'body{font-family:\'IBM Plex Sans\',sans-serif;margin:0;padding:0;color:#333}' +
+  var html = '<html><head><title>Informe PresAI - '+esc(obra)+'</title><style>' +
+    'body{font-family:\'IBM Plex Sans\',sans-serif;margin:0;padding:0;color:#333;counter-reset:page}' +
     'table{width:100%;border-collapse:collapse}' +
-    'th,td{border:1px solid #eee;padding:4px 6px}' +
+    'th,td{border:1px solid #eee;padding:4px 6px}th{background:#f5f5f5}' +
     '.page-break{page-break-before:always}' +
     '.avoid-break{page-break-inside:avoid}' +
-    '@media print{' +
-      '@page{size:landscape;margin:8mm 8mm 25mm 8mm}' +
-    '}' +
-    'body { counter-reset: page; }' +
-    '.pageNumber:after { counter-increment: page; content: counter(page); }' +
-  '</style></head><body>' +
-    (CFG.printCover ? '<div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">' +
+    '@page{size:landscape;margin:8mm 8mm 25mm 8mm}' +
+    '@media print{.pageNumber:after{counter-increment:page;content:counter(page)}}' +
+  '</style></head><body>';
+  
+  if(CFG.printCover){
+    html += '<div style="height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;page-break-after:always;padding:20mm;box-sizing:border-box">' +
       (CFG.coverImgUrl?'<img src="'+CFG.coverImgUrl+'" style="max-width:85%;max-height:45vh;margin-bottom:30px;object-fit:contain"/>':'') +
       '<h1 style="font-size:32px;color:'+color+';margin-bottom:10px">'+esc(obra)+'</h1>' +
       '<h2 style="font-size:18px;color:#666;margin-bottom:40px">PRESUPUESTO DE OBRA</h2>' +
@@ -767,26 +760,36 @@ function doPrint(){
         '<p><strong>Mandante:</strong> '+esc(mandante)+'</p>' +
         '<p><strong>Ubicación:</strong> '+esc(ubic)+'</p>' +
         '<p><strong>Fecha:</strong> '+esc(fecha)+'</p>' +
-      '</div>' + '</div>' : '') +
-    '<div style="padding:10mm;padding-bottom:30mm">' + runHdr +
-      '<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Presupuesto Detallado</h3>' +
-      '<table><thead><tr style="background:#f9f9f9"><th>Ítem</th><th>Descripción</th><th style="text-align:center">Unid</th><th style="text-align:right">Cant.</th><th style="text-align:right">P.Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>'+trows+'</tbody></table>' +
-      '<div style="width:250px;margin-left:auto;margin-top:20px;font-size:11px">' +
-        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>'+s+' '+fmtB(dc)+'</span></div>' +
-        (CFG.printGG && !CFG.ggProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>':'') +
-        (!CFG.utilProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>'+s+' '+fmtB(util)+'</span></div>':'') +
-        (!CFG.impProrrateado && pImp>0?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Imprevistos</span><span>'+s+' '+fmtB(imp)+'</span></div>':'') +
-        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL NETO</span><span>'+s+' '+fmtB(net)+'</span></div>' +
-        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>IVA</span><span>'+s+' '+fmtB(iva)+'</span></div>' +
-        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:2px solid #333;font-weight:700;font-size:14px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
-      '</div>' +
-      '<p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">'+numToWords(grand)+'</p>' +
-      prorrateMsg +
-      (apuHtml || cubHtml ? '' : signatures) + '</div>' +
+      '</div>' + 
+    '</div>';
+  }
+
+  html += '<div style="padding:10mm;padding-bottom:30mm">' + runHdr +
+    '<h3 style="font-size:14px;color:'+color+';border-bottom:2px solid #eee;padding-bottom:5px;margin-bottom:15px">Presupuesto Detallado</h3>' +
+    '<table><thead><tr style="background:#f9f9f9"><th>Ítem</th><th>Descripción</th><th style="text-align:center">Unid</th><th style="text-align:right">Cant.</th><th style="text-align:right">P.Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>'+trows+'</tbody></table>' +
+    '<div style="width:250px;margin-left:auto;margin-top:20px;font-size:11px">' +
+      '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>'+s+' '+fmtB(dc)+'</span></div>' +
+      (CFG.printGG && !CFG.ggProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>':'') +
+      (!CFG.utilProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>'+s+' '+fmtB(util)+'</span></div>':'') +
+      (!CFG.impProrrateado && pImp>0?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Imprevistos</span><span>'+s+' '+fmtB(imp)+'</span></div>':'') +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL NETO</span><span>'+s+' '+fmtB(net)+'</span></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>IVA</span><span>'+s+' '+fmtB(iva)+'</span></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:2px solid #333;font-weight:700;font-size:14px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
+    '</div>' +
+    '<p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">'+numToWords(grand)+'</p>' +
+    (apuHtml || cubHtml ? '' : signatures) + '</div>' +
     apuHtml + cubHtml +
     (apuHtml || cubHtml ? '<div style="padding:10mm;padding-bottom:30mm;position:relative;min-height:200px">'+signatures+'</div>' : '') +
     footer +
-  '</body></html>');
+  '</body></html>';
+
+  return html;
+}
+
+function doPrint(){
+  var html = genPrintHtml();
+  var win=window.open('','_blank');
+  win.document.write(html);
   win.document.close();
   setTimeout(()=>win.print(),500);
 }
@@ -798,24 +801,12 @@ function previewReport(){
     <div class="mh"><h3>Vista Previa del Informe</h3><button class="btn-s" onclick="closeMod()">Cerrar</button></div>
     <div class="mb" style="height:600px;overflow:auto" id="preview-body"></div>
   </div>`;
-  let obra=document.getElementById('pObra').value||'Sin nombre';
-  document.getElementById('preview-body').innerHTML=`<iframe class="preview-frame" src="about:blank"></iframe>`;
   setTimeout(()=>{
-    let frame=document.querySelector('.preview-frame');
-    let doc=frame.contentDocument||frame.contentWindow.document;
-    doc.write('<html><head><style>body{font-family:Arial,sans-serif;margin:20px;color:#333}h1{color:#1e3a5f}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}</style></head><body>');
-    doc.write('<h1>'+esc(obra)+'</h1>');
-    doc.write('<p><strong>Mandante:</strong> '+esc(document.getElementById('pMandante').value)+'</p>');
-    doc.write('<p><strong>Ubicación:</strong> '+esc(document.getElementById('pUbicacion').value)+'</p>');
-    doc.write('<p><strong>Fecha:</strong> '+esc(document.getElementById('pFecha').value)+'</p>');
-    doc.write('<h2>Presupuesto Detallado</h2>');
-    doc.write('<table><tr><th>Ítem</th><th>Descripción</th><th>Unid</th><th>Cant.</th><th>P.Unit.</th><th>Total</th></tr>');
-    items.forEach(it=>{
-      if(it.t==='ch') doc.write('<tr style="background:#e8eef7"><td colspan="6"><strong>'+esc(it.num)+' '+esc(it.name)+'</strong></td></tr>');
-      else doc.write('<tr><td>'+esc(it.num)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.unit)+'</td><td>'+fmtQ(N(it.qty))+'</td><td>'+s+' '+fmtP(N(it.price))+'</td><td>'+s+' '+fmtB(N(it.qty)*N(it.price))+'</td></tr>');
-    });
-    doc.write('</table></body></html>');
-    doc.close();
+    let frame=document.querySelector('#preview-body');
+    frame.innerHTML='<iframe class="preview-frame" id="prev-frame" srcdoc=""></iframe>';
+    let ifrm=document.getElementById('prev-frame');
+    let html=genPrintHtml();
+    ifrm.srcdoc=html;
   },100);
 }
 

@@ -79,12 +79,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 
 /* ── BUDGET TABLE ── */
 .tbl-wrap{background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
-.tbl-hdr{display:grid;grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
+.tbl-hdr{display:grid;grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
 .tbl-hdr span{padding:9px 6px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px}
 .tbl-hdr .r{text-align:right}
 .row-ch,.row-it{display:grid;border-bottom:1px solid var(--border);padding:0 8px;align-items:center}
-.row-ch{grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
-.row-it{grid-template-columns:60px minmax(180px,1fr) 65px 82px 96px 96px 130px}
+.row-ch{grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px;background:rgba(30,58,95,.05);border-bottom:1px solid var(--border2)}
+.row-it{grid-template-columns:55px minmax(140px,1fr) 60px 75px 85px 85px 120px}
 .row-it:hover{background:#f6f8ff}.row-ch:hover{background:rgba(30,58,95,.08)}
 .ri{font-family:var(--ff);font-size:13px;color:var(--txt);background:transparent;border:none;outline:none;width:100%;padding:10px 6px;line-height:1.3}
 .ri::placeholder{color:var(--txt3);font-style:italic}.ri:focus::placeholder{opacity:0}
@@ -169,9 +169,9 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .ls-foot .lv{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--amber)}
 
 /* ── TOF (Cubicaciones) ── */
-.tof-hdr{display:grid;grid-template-columns:1fr 60px 60px 60px 80px 30px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
+.tof-hdr{display:grid;grid-template-columns:1fr 50px 50px 50px 50px 80px 30px;background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 8px}
 .tof-hdr span{padding:8px 4px;font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase}
-.tof-row{display:grid;grid-template-columns:1fr 60px 60px 60px 80px 30px;border-bottom:1px solid var(--border);padding:0 8px;align-items:center}
+.tof-row{display:grid;grid-template-columns:1fr 50px 50px 50px 50px 80px 30px;border-bottom:1px solid var(--border);padding:0 8px;align-items:center}
 .tof-row input{font-size:12px;padding:6px 4px;border:none;background:transparent;outline:none;width:100%}
 .tof-row input:focus{background:var(--bg2)}
 .tof-row .r{text-align:right;font-family:var(--mono)}
@@ -373,6 +373,7 @@ function fmtB(n){return fmtN(n,CFG.decimalsBudget);}
 function esc(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 
 function numToWords(n){
+  if(!n || isNaN(n)) return '';
   n=Math.round(n);if(n===0)return'CERO';
   var u=['','UN','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'];
   var d10=['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'];
@@ -443,7 +444,7 @@ function initEvents(){
   document.getElementById('brows').addEventListener('input',function(e){
     var inp=e.target;if(!inp.dataset||!inp.dataset.field)return;
     var id=inp.dataset.id,f=inp.dataset.field,v=inp.value;
-    if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
+    if(f==='qty'||f==='price'||f==='tiempoUso') v=N(v.replace(/\./g,'').replace(',','.'));
     items=items.map(function(x){if(x.id!==id)return x;var o=Object.assign({},x);o[f]=v;return o;});
     var ct=ctotals();
     items.forEach(function(it){
@@ -478,7 +479,7 @@ function rc(){
   var dc=items.reduce((a,it)=>it.t==='it'?a+N(it.qty)*N(it.price):a,0);
   var ggF=document.getElementById('ggFijo').checked;
   var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
-  var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
+  var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.tiempoUso)*N(it.price),0);
   var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util+imp,iva=net*(pIVA/100),grand=net+iva;
   
   var html=`<div class="tr2"><span class="tl">Costo Directo</span><span class="tv">${sym()} ${fmtB(dc)}</span></div>`;
@@ -511,7 +512,7 @@ function rc(){
 }
 
 /* ── GG ── */
-function addGG(){ggItems.push({id:gid(),num:'',name:'',unit:'gl',qty:1,price:0});renderGG();markUnsaved();}
+function addGG(){ggItems.push({id:gid(),num:'',name:'',unit:'gl',qty:1,tiempoUso:1,price:0,subgrupo:'Otros'});renderGG();markUnsaved();}
 function renderGG(){
   document.getElementById('gg-body').innerHTML=ggItems.map(it=>`
     <tr>
@@ -526,7 +527,7 @@ function renderGG(){
   rc();
 }
 function ugg(id,f,v){
-  if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
+  if(f==='qty'||f==='price'||f==='tiempoUso') v=N(v.replace(/\./g,'').replace(',','.'));
   ggItems=ggItems.map(x=>x.id===id?Object.assign(x,{[f]:v}):x);
   let row = document.querySelector(`tr:has(input[oninput*="'${id}'"])`);
   if(row){
@@ -570,6 +571,11 @@ function renderApuEdit(id){
       <td class="r mn" id="sub-${id}-${si}-${ri}">${fmtP(N(r.qty)*N(r.price))}</td>
       <td><button class="bs del" onclick="dapu('${id}',${si},${ri})">×</button></td></tr>`);
     html+=`</tbody></table><button class="bs addp" style="margin-top:4px" onclick="aapu('${id}',${si})">+ Recurso</button></div>`;
+  setTimeout(()=>{
+    document.querySelectorAll('#apu-edit-body input, #apu-edit-body select').forEach((inp,idx,arr)=>{
+      inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();let next=arr[idx+1];if(next)next.focus();else this.blur();}});
+    });
+  },100);
   });
   let mo=a.secs[0].rows.reduce((x,r)=>x+N(r.qty)*N(r.price),0);
   let pct=N(a.ls.afp)+N(a.ls.salud)+N(a.ls.seguro)+N(a.ls.mutual)+N(a.ls.sis)+N(a.ls.sanna)+N(a.ls.otros);
@@ -592,7 +598,7 @@ function renderApuEdit(id){
 }
 function aapu(id,si){apuData[id].secs[si].rows.push({desc:'',unit:'',qty:1,price:0});renderApuEdit(id);markUnsaved();}
 function uapu(id,si,ri,f,v){
-  if(f==='qty'||f==='price') v=N(v.replace(/\./g,'').replace(',','.'));
+  if(f==='qty'||f==='price'||f==='tiempoUso') v=N(v.replace(/\./g,'').replace(',','.'));
   let a=apuData[id], r=a.secs[si].rows[ri];
   r[f]=v;
   if(f==='desc' && (v.toLowerCase().includes('perdida') || v.toLowerCase().includes('pérdida'))){
@@ -636,15 +642,16 @@ function openTof(id){
 }
 function renderTof(id){
   let rows=tofData[id],it=items.find(x=>x.id===id);
-  let html=`<div class="tof-hdr"><span>Descripción / Eje</span><span>Cant.</span><span>Ancho</span><span>Largo</span><span>Total</span><span></span></div>`;
+  let html=`<div class="tof-hdr"><span>Descripción / Eje</span><span>Cant.</span><span>Ancho</span><span>Alto</span><span>Largo</span><span>Total</span><span></span></div>`;
   rows.forEach((r,ri)=>html+=`<div class="tof-row">
     <input value="${esc(r.desc)}" oninput="utof('${id}',${ri},'desc',this.value)"/>
     <input class="r" type="text" value="${fmtQ(N(r.n))}" oninput="utof('${id}',${ri},'n',this.value)" onfocus="this.select()"/>
     <input class="r" type="text" value="${fmtQ(N(r.a))}" oninput="utof('${id}',${ri},'a',this.value)" onfocus="this.select()"/>
+    <input class="r" type="text" value="${fmtQ(N(r.h)||1)}" oninput="utof('${id}',${ri},'h',this.value)" onfocus="this.select()"/>
     <input class="r" type="text" value="${fmtQ(N(r.l))}" oninput="utof('${id}',${ri},'l',this.value)" onfocus="this.select()"/>
-    <div class="st" id="tof-sub-${id}-${ri}">${fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))}</div>
+    <div class="st" id="tof-sub-${id}-${ri}">${fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.h))*Math.max(1,N(r.l)))}</div>
     <button class="bs del" onclick="dtof('${id}',${ri})">×</button></div>`);
-  let total = rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
+  let total = rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.h))*Math.max(1,N(r.l))),0);
   html+=`<button class="bs addp" style="margin:10px" onclick="atof('${id}')">+ Agregar Fila</button>
     <div style="text-align:right;padding:10px;font-size:15px;font-weight:600;color:var(--navy)" id="tof-total-${id}">Total Cubicidad: ${fmtQ(total)} ${esc(it.unit)}</div>`;
   document.getElementById('tof-body').innerHTML=html;
@@ -652,7 +659,7 @@ function renderTof(id){
   it.isCub = true;
   rb();
 }
-function atof(id){tofData[id].push({desc:'',n:1,a:1,l:1});renderTof(id);markUnsaved();}
+function atof(id){tofData[id].push({desc:'',n:1,a:1,h:1,l:1});renderTof(id);markUnsaved();}
 function utof(id,ri,f,v){
   if(f==='n'||f==='a'||f==='l') v=N(v.replace(/\./g,'').replace(',','.'));
   tofData[id][ri][f]=v;
@@ -678,7 +685,7 @@ function genPrintHtml(){
   var dc=items.reduce((a,it)=>it.t==='it'?a+N(it.qty)*N(it.price):a,0);
   var ggF=document.getElementById('ggFijo').checked;
   var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
-  var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
+  var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.tiempoUso)*N(it.price),0);
   var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util+imp,iva=net*(pIVA/100),grand=net+iva;
 
   var pageSize = CFG.pageSize === 'legal' ? 'legal' : 'letter';
@@ -706,7 +713,7 @@ function genPrintHtml(){
     ggItems.forEach(it=>{
       ggHtml+='<tr style="border-bottom:1px solid #eee"><td style="font-family:monospace;font-size:9px;padding:4px 8px;color:#475569">'+esc(it.num)+'</td><td style="padding:4px 8px">'+esc(it.name)+'</td><td style="text-align:center;padding:4px 8px;font-size:9px">'+esc(it.unit)+'</td><td style="text-align:right;font-family:monospace;padding:4px 8px">'+fmtQ(N(it.qty))+'</td><td style="text-align:right;font-family:monospace;padding:4px 8px">'+s+' '+fmtP(N(it.price))+'</td><td style="text-align:right;font-family:monospace;padding:4px 8px;font-weight:500">'+s+' '+fmtB(N(it.qty)*N(it.price))+'</td></tr>';
     });
-    var ggTotal=ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
+    var ggTotal=ggItems.reduce((a,it)=>a+N(it.qty)*N(it.tiempoUso)*N(it.price),0);
     ggHtml+='<tr style="background:#f0f4f8;font-weight:700;color:'+color+'"><td colspan="5" style="padding:5px 8px;text-align:right">TOTAL GASTOS GENERALES</td><td style="text-align:right;font-family:monospace;padding:5px 8px">'+s+' '+fmtB(ggTotal)+'</td></tr></tbody></table>';
     ggHtml+='</div>';
   }
@@ -739,11 +746,11 @@ function genPrintHtml(){
     var firstCub=true;
     items.forEach(it=>{
       if(it.t!=='it'||!tofData[it.id]||!tofData[it.id].length)return;
-      let rows=tofData[it.id], total=rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
+      let rows=tofData[it.id], total=rows.reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.h))*Math.max(1,N(r.l))),0);
       cubHtml+=(CFG.cubPerPage&&!firstCub?'<div class="page-break" style="padding:10mm;padding-bottom:30mm">':'')+'<div class="avoid-break" style="margin-bottom:20px">' +
         '<div style="font-weight:700;color:'+color+';margin-bottom:5px">'+esc(it.num)+' — '+esc(it.name)+'</div>' +
-        '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#f9f9f9;color:#666"><th style="text-align:left;padding:4px 8px">Descripción / Eje</th><th style="text-align:right">Cant.</th><th style="text-align:right">Ancho</th><th style="text-align:right">Largo</th><th style="text-align:right;padding-right:8px">Total</th></tr></thead><tbody>';
-      rows.forEach(r=>cubHtml+='<tr style="border-bottom:1px solid #eee"><td style="padding:3px 8px">'+esc(r.desc)+'</td><td style="text-align:right">'+fmtQ(N(r.n))+'</td><td style="text-align:right">'+fmtQ(N(r.a))+'</td><td style="text-align:right">'+fmtQ(N(r.l))+'</td><td style="text-align:right;padding-right:8px">'+fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l)))+'</td></tr>');
+        '<table style="width:100%;border-collapse:collapse;font-size:9px"><thead><tr style="background:#f9f9f9;color:#666"><th style="text-align:left;padding:4px 8px">Descripción / Eje</th><th style="text-align:right">Cant.</th><th style="text-align:right">Ancho</th><th style="text-align:right">Alto</th><th style="text-align:right">Largo</th><th style="text-align:right;padding-right:8px">Total</th></tr></thead><tbody>';
+      rows.forEach(r=>cubHtml+='<tr style="border-bottom:1px solid #eee"><td style="padding:3px 8px">'+esc(r.desc)+'</td><td style="text-align:right">'+fmtQ(N(r.n))+'</td><td style="text-align:right">'+fmtQ(N(r.a))+'</td><td style="text-align:right">'+fmtQ(N(r.h)||1)+'</td><td style="text-align:right">'+fmtQ(N(r.l))+'</td><td style="text-align:right;padding-right:8px">'+fmtQ(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.h))*Math.max(1,N(r.l)))+'</td></tr>');
       cubHtml+='<tr style="font-weight:700;background:#f0f4f8"><td colspan="4" style="padding:4px 8px">TOTAL PARTIDA</td><td style="text-align:right;padding-right:8px">'+fmtQ(total)+' '+esc(it.unit)+'</td></tr></tbody></table></div>'+(CFG.cubPerPage&&!firstCub?'</div>':'');
       firstCub=false;
     });
@@ -771,7 +778,8 @@ function genPrintHtml(){
     '.print-footer{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:4px 10mm;font-size:8px;color:#64748b;display:flex;justify-content:space-between;align-items:center;z-index:9999}' +
     '@page{size:'+pageSizeCss+';margin:'+margins+'}' +
     '@media print{' +
-      'body{counter-reset:page}' +
+      'body{counter-reset:page;position:relative}' +
+      'body::before{content:"PresAI Software avanzado de presupuesto";position:fixed;bottom:25mm;left:50%;transform:translateX(-50%);opacity:0.08;font-size:14px;color:#999;pointer-events:none;z-index:1}' +
       '.pageNumber::after{counter-increment:page;content:counter(page)}' +
       '.print-footer{display:flex !important}' +
     '}' +
@@ -1046,7 +1054,7 @@ function refreshCubTab(){
   else{
     grid.style.display='grid';empty.style.display='none';
     grid.innerHTML=cubs.map(it=>{
-      let total=tofData[it.id].reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
+      let total=tofData[it.id].reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.h))*Math.max(1,N(r.l))),0);
       return `<div class="tot-card" style="cursor:pointer" onclick="openTof('${it.id}')">
         <div style="font-weight:600;color:var(--magenta)">${it.num} ${esc(it.name)}</div>
         <div style="text-align:right;font-family:var(--mono)">${fmtQ(total)} ${esc(it.unit)}</div>

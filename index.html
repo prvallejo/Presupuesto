@@ -117,6 +117,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .tr2.grand{background:var(--navy-lt);padding:9px 12px;border-radius:7px;margin-top:6px}
 .tr2.grand .tl{font-weight:600;color:var(--navy);font-size:13px}
 .tr2.grand .tv{font-size:16px;font-weight:600;color:var(--navy)}
+.tr2.prorate{font-size:11px;color:#d97706;font-style:italic}
 .words-row{font-size:10px;color:var(--txt2);font-style:italic;text-align:right;padding:5px 2px 0;border-top:1px solid var(--border);margin-top:4px}
 .cfg-side{display:flex;flex-direction:column;gap:8px}
 .cfg-lbl{font-size:9px;font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;padding-bottom:4px;border-bottom:1px solid var(--border)}
@@ -178,7 +179,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 
 /* ── PRINT STYLES ── */
 @media print {
-  @page { size: landscape; margin: 8mm 8mm 20mm 8mm; }
+  @page { size: landscape; margin: 8mm 8mm 25mm 8mm; }
   body { background: #fff; font-size: 10pt; }
   .no-print { display: none !important; }
   .page-break { page-break-before: always; }
@@ -333,7 +334,7 @@ const CFG_DEF = {
   colorHeader:'#1e3a5f', logoDataUrl:'', coverImgUrl:'',
   printCover:true, printApu:true, printCub:true, printGG:false,
   pageSize:'letter', apuPerPage:true, cubPerPage:true,
-  autoSave:true, autoSaveInterval:300, ggProrrateado:false, utilProrrateado:false,
+  autoSave:true, autoSaveInterval:300, ggProrrateado:false, utilProrrateado:false, impProrrateado:false,
   impPorApu:false, impVisible:false
 };
 let CFG = Object.assign({}, CFG_DEF);
@@ -477,20 +478,26 @@ function rc(){
   var ggF=document.getElementById('ggFijo').checked;
   var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
   var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
-  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
+  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util+imp,iva=net*(pIVA/100),grand=net+iva;
   
   var html=`<div class="tr2"><span class="tl">Costo Directo</span><span class="tv">${sym()} ${fmtB(dc)}</span></div>`;
   
   if(!CFG.ggProrrateado){
     html+=`<div class="tr2"><span class="tl">Gastos Generales${ggF?' ('+pGG+'%)':''}</span><span class="tv">${sym()} ${fmtB(ggV)}</span></div>`;
+  } else {
+    html+=`<div class="tr2 prorate"><span class="tl">Gastos Generales ($ ${fmtB(ggV)} prorrateados)</span></div>`;
   }
   
   if(!CFG.utilProrrateado){
     html+=`<div class="tr2"><span class="tl">Utilidad (${pU}%)</span><span class="tv">${sym()} ${fmtB(util)}</span></div>`;
+  } else {
+    html+=`<div class="tr2 prorate"><span class="tl">Utilidad ($ ${fmtB(util)} prorrateada)</span></div>`;
   }
   
-  if(pImp>0){
+  if(!CFG.impProrrateado && pImp>0){
     html+=`<div class="tr2"><span class="tl">Imprevistos (${pImp}%)</span><span class="tv">${sym()} ${fmtB(imp)}</span></div>`;
+  } else if(CFG.impProrrateado && pImp>0) {
+    html+=`<div class="tr2 prorate"><span class="tl">Imprevistos ($ ${fmtB(imp)} prorrateados)</span></div>`;
   }
   
   html+=`<div class="tr2 sep"><span class="tl" style="font-weight:500">Total Neto</span><span class="tv" style="font-weight:500">${sym()} ${fmtB(net)}</span></div>
@@ -671,7 +678,7 @@ function doPrint(){
   var ggF=document.getElementById('ggFijo').checked;
   var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
   var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
-  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
+  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util+imp,iva=net*(pIVA/100),grand=net+iva;
 
   var runHdr='<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid '+color+';padding-bottom:8px;margin-bottom:14px">' +
     '<div style="display:flex;align-items:center;gap:10px">' + (CFG.logoDataUrl?'<img src="'+CFG.logoDataUrl+'" style="max-height:35px;max-width:80px;object-fit:contain;margin:0"/>':'') +
@@ -727,8 +734,8 @@ function doPrint(){
     '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">'+esc(CFG.profName||profesional)+'</div></div>' +
     '</div>';
 
-  var footer='<div style="text-align:center;font-size:9px;color:#64748b;border-top:1px solid #eee;padding-top:3px;position:fixed;bottom:0;left:0;right:0;background:#fff">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding:0 8mm">' +
+  var footer='<div style="text-align:center;font-size:9px;color:#64748b;border-top:1px solid #eee;padding-top:3px;position:fixed;bottom:0;left:0;right:0;background:#fff;padding:3px 8mm">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
       '<div style="flex:1;text-align:left;font-size:8px">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
       '<div style="font-weight:600">Pág. <span class="pageNumber"></span></div>' +
     '</div>' +
@@ -737,6 +744,7 @@ function doPrint(){
   var prorrateMsg='';
   if(CFG.ggProrrateado) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:5px">Gastos Generales $ __________ Prorrateado en APU</div>';
   if(CFG.utilProrrateado) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:2px">Utilidad $ __________ Prorrateada en APU</div>';
+  if(CFG.impProrrateado && pImp>0) prorrateMsg+='<div style="font-size:9px;color:#666;margin-top:2px">Imprevistos $ __________ Prorrateados en APU</div>';
 
   var win=window.open('','_blank');
   win.document.write('<html><head><title>Informe PresAI - '+esc(obra)+'</title><style>' +
@@ -746,7 +754,7 @@ function doPrint(){
     '.page-break{page-break-before:always}' +
     '.avoid-break{page-break-inside:avoid}' +
     '@media print{' +
-      '@page{size:landscape;margin:8mm 8mm 20mm 8mm}' +
+      '@page{size:landscape;margin:8mm 8mm 25mm 8mm}' +
     '}' +
     'body { counter-reset: page; }' +
     '.pageNumber:after { counter-increment: page; content: counter(page); }' +
@@ -767,8 +775,10 @@ function doPrint(){
         '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>'+s+' '+fmtB(dc)+'</span></div>' +
         (CFG.printGG && !CFG.ggProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>':'') +
         (!CFG.utilProrrateado?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>'+s+' '+fmtB(util)+'</span></div>':'') +
-        (pImp>0?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Imprevistos</span><span>'+s+' '+fmtB(imp)+'</span></div>':'') +
-        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
+        (!CFG.impProrrateado && pImp>0?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Imprevistos</span><span>'+s+' '+fmtB(imp)+'</span></div>':'') +
+        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL NETO</span><span>'+s+' '+fmtB(net)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>IVA</span><span>'+s+' '+fmtB(iva)+'</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:2px solid #333;font-weight:700;font-size:14px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
       '</div>' +
       '<p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">'+numToWords(grand)+'</p>' +
       prorrateMsg +
@@ -846,21 +856,11 @@ function openHelp(){
       <p><strong>Empresa:</strong> Datos que aparecerán en el informe.</p>
       <p><strong>Impresión:</strong> Elige qué secciones incluir en el PDF.</p>
       <p><strong>Guardado Automático:</strong> Guarda tu proyecto cada X segundos.</p>
-      <p><strong>Prorrateo:</strong> Distribuye GG y Utilidad en los APU (no aparecen al final).</p>
-      <p><strong>Imprevistos:</strong> Agrega un % separado o visible en el informe.</p>
+      <p><strong>Prorrateo:</strong> Distribuye GG, Utilidad e Imprevistos en los APU (no aparecen al final).</p>
     </div>
     <div class="help-section">
       <h5>🖨️ Impresión</h5>
       <p>Genera un PDF profesional con Portada, Presupuesto, APU y Cubicaciones. Usa "Vista Previa" para revisar antes de imprimir.</p>
-    </div>
-    <div class="help-section">
-      <h5>💡 Consejos</h5>
-      <ul>
-        <li>Usa APU para proyectos complejos con muchos recursos</li>
-        <li>Usa Cubicaciones para obras con mediciones claras</li>
-        <li>Guarda regularmente tus proyectos en "Mis Proyectos"</li>
-        <li>Revisa la Vista Previa antes de imprimir</li>
-      </ul>
     </div>
   `;
 }
@@ -927,10 +927,7 @@ function openSettings(){
       '<div class="cfg-section"><h4>Prorrateo</h4><div class="chk-opts">' +
         '<label class="chk-opt"><input type="checkbox" '+(CFG.ggProrrateado?'checked':'')+' onchange="CFG.ggProrrateado=this.checked;saveCFG();rc()"> Prorratear Gastos Generales en APU</label>' +
         '<label class="chk-opt"><input type="checkbox" '+(CFG.utilProrrateado?'checked':'')+' onchange="CFG.utilProrrateado=this.checked;saveCFG();rc()"> Prorratear Utilidad en APU</label>' +
-      '</div></div>' +
-      '<div class="cfg-section"><h4>Imprevistos</h4><div class="chk-opts">' +
-        '<label class="chk-opt"><input type="checkbox" '+(CFG.impPorApu?'checked':'')+' onchange="CFG.impPorApu=this.checked;saveCFG()"> Imprevistos por APU (separado)</label>' +
-        '<label class="chk-opt"><input type="checkbox" '+(CFG.impVisible?'checked':'')+' onchange="CFG.impVisible=this.checked;saveCFG()"> Imprevistos Visible en Informe</label>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.impProrrateado?'checked':'')+' onchange="CFG.impProrrateado=this.checked;saveCFG();rc()"> Prorratear Imprevistos en APU</label>' +
       '</div></div>' +
     '</div>' +
     '<div class="mf"><button class="btn-p blue" onclick="closeMod()">Listo</button></div>' +

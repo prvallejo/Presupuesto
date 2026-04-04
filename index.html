@@ -10,7 +10,7 @@
 :root{
   --ff:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
   --navy:#1e3a5f;--navy-lt:#e8eef7;--amber:#b45309;--amber-lt:#fffbeb;
-  --green:#166534;--green-lt:#dcfce7;
+  --green:#166534;--green-lt:#dcfce7;--magenta:#d946ef;--magenta-lt:#f3e8ff;
   --red:#991b1b;--red-lt:#fef2f2;--border:#e2e8f0;--border2:#cbd5e1;
   --bg:#fff;--bg2:#f8fafc;--bg3:#f1f5f9;--txt:#0f172a;--txt2:#64748b;--txt3:#94a3b8;
 }
@@ -91,7 +91,9 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .ri.mono{font-family:var(--mono);font-size:12px}.ri.r{text-align:right}
 .ri.ch{font-weight:600;color:var(--navy);font-size:13px}
 .ri.ch::placeholder{color:#94a3b8;font-weight:400;font-style:italic}
+.ri.magenta{color:var(--magenta);font-weight:600}
 .span-tot{padding:10px 6px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--txt)}
+.span-tot.magenta{color:var(--magenta);font-weight:600}
 .span-ch-tot{padding:10px 6px;text-align:right;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--navy)}
 .span-acts{display:flex;align-items:center;justify-content:flex-end;gap:3px;padding:3px 0}
 .tbl-add{padding:9px 12px;display:flex;gap:6px;background:var(--bg2);border-top:1px solid var(--border)}
@@ -102,7 +104,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .bs.del{border:.5px solid var(--border);font-size:14px;line-height:1;padding:3px 6px;background:var(--bg2);color:var(--txt3);border-radius:4px}
 .bs.del:hover{color:#fff;background:var(--red);border-color:var(--red)}
 .bs.apu{font-size:9px;padding:3px 6px;background:var(--amber-lt);color:var(--amber);border-color:var(--amber)}
-.bs.cub{font-size:9px;padding:3px 6px;background:var(--navy-lt);color:var(--navy);border-color:var(--navy)}
+.bs.cub{font-size:9px;padding:3px 6px;background:var(--magenta-lt);color:var(--magenta);border-color:var(--magenta)}
 .bs.addp{font-size:9px;padding:3px 6px;background:var(--green-lt);color:var(--green);border-color:var(--green)}
 
 /* ── TOTALS ── */
@@ -132,7 +134,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .mb{padding:14px;overflow-y:auto;max-height:480px}
 .mf{padding:11px 14px;background:var(--bg2);border-top:1px solid var(--border2);display:flex;justify-content:space-between;align-items:center}
 .btn-p{font-family:var(--ff);font-size:12px;font-weight:500;padding:7px 14px;border-radius:6px;cursor:pointer;border:none;color:#fff}
-.btn-p.amber{background:var(--amber)}.btn-p.blue{background:var(--navy)}.btn-p.green{background:#166534}
+.btn-p.amber{background:var(--amber)}.btn-p.blue{background:var(--navy)}.btn-p.green{background:#166534}.btn-p.magenta{background:var(--magenta)}
 .btn-p:hover{opacity:.87}
 .btn-s{font-family:var(--ff);font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;background:var(--bg);color:var(--txt2);border:1px solid var(--border2)}
 .btn-s:hover{background:var(--bg2)}
@@ -181,7 +183,6 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
   .no-print { display: none !important; }
   .page-break { page-break-before: always; }
   .avoid-break { page-break-inside: avoid; }
-  .footer-wrap { position: fixed; bottom: 0; width: 100%; height: 20mm; }
 }
 
 /* ── CONFIG MODAL ── */
@@ -194,6 +195,17 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 .cfg-field input:focus{border-color:var(--navy)}
 .chk-opts{display:flex;flex-direction:column;gap:8px}
 .chk-opt{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--txt);cursor:pointer}
+
+/* ── HELP MODAL ── */
+.help-content{font-size:12px;line-height:1.6;color:var(--txt)}
+.help-section{margin-bottom:16px}
+.help-section h5{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:8px}
+.help-section p{margin-bottom:6px;color:var(--txt2)}
+.help-section ul{margin-left:16px;margin-bottom:8px}
+.help-section li{margin-bottom:4px}
+
+/* ── PREVIEW MODAL ── */
+.preview-frame{width:100%;height:600px;border:1px solid var(--border);border-radius:5px}
 </style>
 </head>
 <body>
@@ -222,8 +234,10 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
       <button class="hbtn" onclick="openProjects()"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> Proyectos</button>
       <button class="hbtn" onclick="newProject()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nuevo</button>
       <button class="hbtn" onclick="saveProject()"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Guardar</button>
-      <button class="hbtn green" onclick="doPrint()"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir Informe</button>
-      <button class="hbtn" onclick="openSettings()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+      <button class="hbtn" onclick="previewReport()"><svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Vista Previa</button>
+      <button class="hbtn green" onclick="doPrint()"><svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Imprimir</button>
+      <button class="hbtn" onclick="openHelp()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></button>
+      <button class="hbtn" onclick="openSettings()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
     </div>
   </header>
 
@@ -231,6 +245,7 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
     <div class="tab on" onclick="sw('bud',this)">Presupuesto</div>
     <div class="tab" onclick="sw('gg',this)">Gastos Generales</div>
     <div class="tab" id="tab-apu" onclick="sw('apu',this)">Análisis Unitarios</div>
+    <div class="tab" id="tab-cub" onclick="sw('cub',this)">Cubicaciones</div>
   </nav>
 
   <main class="content">
@@ -260,8 +275,9 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
         <div class="cfg-side no-print">
           <div class="cfg-lbl">Parámetros de Cálculo</div>
           <div class="cr"><label>Gastos Generales (%)</label><input type="number" id="pGG" value="15" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
-          <div class="cr"><label style="font-size:9px;color:var(--txt3);margin-left:12px"><input type="checkbox" id="ggFijo" onchange="rc();markUnsaved()"/> Usar % fijo (ignorar detalle GG)</label></div>
+          <div class="cr"><label style="font-size:9px;color:var(--txt3);margin-left:12px"><input type="checkbox" id="ggFijo" onchange="rc();markUnsaved()"/> Usar % fijo</label></div>
           <div class="cr"><label>Utilidad (%)</label><input type="number" id="pUtil" value="12" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
+          <div class="cr"><label>Imprevistos (%)</label><input type="number" id="pImp" value="0" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
           <div class="cr"><label>IVA (%)</label><input type="number" id="pIVA" value="19" oninput="rc();markUnsaved()" onfocus="this.select()"/></div>
         </div>
       </div>
@@ -284,6 +300,12 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
       <div id="apu-list-empty" style="padding:40px;text-align:center;color:var(--txt3)">No hay Análisis de Precios Unitarios creados aún.</div>
       <div id="apu-list-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
     </div>
+
+    <!-- PANEL: CUBICACIONES -->
+    <div id="p-cub" class="pnl">
+      <div id="cub-list-empty" style="padding:40px;text-align:center;color:var(--txt3)">No hay Cubicaciones creadas aún.</div>
+      <div id="cub-list-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
+    </div>
   </main>
 </div>
 
@@ -293,14 +315,15 @@ body{font-family:var(--ff);color:var(--txt);font-size:13px;background:var(--bg3)
 <script>
 /* ── STATE ── */
 let items = [
-  {id:gid(),t:'ch',num:'1.-',name:'OBRAS PRELIMINARES',unit:'',qty:0,price:0},
-  {id:gid(),t:'it',num:'1.1',name:'Instalación de faenas',unit:'gl',qty:1,price:0}
+  {id:gid(),t:'ch',num:'1.-',name:'OBRAS PRELIMINARES',unit:'',qty:0,price:0,isApu:false,isCub:false},
+  {id:gid(),t:'it',num:'1.1',name:'Instalación de faenas',unit:'gl',qty:1,price:0,isApu:false,isCub:false}
 ];
 let ggItems = [];
 let apuData = {}; 
 let tofData = {}; 
 let currentProjectId = null;
 let isDirty = false;
+let autoSaveInterval = null;
 
 const CFG_DEF = {
   currency:'CLP', parity:1, decimalsQty:2, decimalsPrice:0, decimalsBudget:0,
@@ -308,7 +331,10 @@ const CFG_DEF = {
   companyRut:'', companyAddress:'', companyPhone:'', companyEmail:'', companyWeb:'',
   repLegal:'', repLegalRut:'', profName:'', profRut:'',
   colorHeader:'#1e3a5f', logoDataUrl:'', coverImgUrl:'',
-  printCover:true, printApu:true, printCub:true
+  printCover:true, printApu:true, printCub:true, printGG:true,
+  pageSize:'letter', apuPerPage:true, cubPerPage:true,
+  autoSave:true, autoSaveInterval:300, ggProrrateado:false, utilProrrateado:false,
+  impPorApu:false, impVisible:false
 };
 let CFG = Object.assign({}, CFG_DEF);
 
@@ -324,7 +350,7 @@ function getIdx(){return lsL('od_index')||[];}
 function saveIdx(idx){lsS('od_index',idx);}
 
 function saveCFG(){lsS('od_cfg',CFG);}
-function loadCFG(){let x=lsL('od_cfg');if(x)CFG=Object.assign(CFG,x);applyColor();updBrand();updLogoHdr();}
+function loadCFG(){let x=lsL('od_cfg');if(x)CFG=Object.assign(CFG,x);applyColor();updBrand();updLogoHdr();setupAutoSave();}
 function applyColor(){document.documentElement.style.setProperty('--navy',CFG.colorHeader);}
 function updBrand(){
   document.getElementById('hdrProjName').textContent = document.getElementById('pObra').value || (currentProjectId?'Proyecto':'Nuevo proyecto');
@@ -389,22 +415,24 @@ function rb(){
     }
     var tot=N(it.qty)*N(it.price);
     var ha=apuData[it.id],hc=tofData[it.id]&&tofData[it.id].length;
+    var qtyClass=it.isCub?'ri r magenta':'ri r';
+    var priceClass=it.isApu?'ri r magenta':'ri r';
     return `<div class="row-it" data-id="${it.id}">
       <input class="ri mono" data-field="num" data-id="${it.id}" placeholder="N°" value="${esc(it.num)}"/>
       <input class="ri" data-field="name" data-id="${it.id}" placeholder="Descripción..." value="${esc(it.name)}"/>
       <select class="ri" style="width:65px;padding:10px 2px" data-field="unit" data-id="${it.id}" onchange="uUnit('${it.id}',this.value)">
         ${UNITS_BUDGET.map(u=>`<option value="${u}" ${it.unit===u?'selected':''}>${u}</option>`).join('')}
       </select>
-      <input class="ri r" data-field="qty" data-id="${it.id}" placeholder="0" value="${fmtQ(N(it.qty))}" onfocus="this.select()"/>
-      <input class="ri r" data-field="price" data-id="${it.id}" placeholder="P.Unit." value="${fmtP(N(it.price))}" onfocus="this.select()"/>
-      <span class="span-tot">${sym()} ${fmtB(tot)}</span>
+      <input class="${qtyClass}" data-field="qty" data-id="${it.id}" placeholder="0" value="${fmtQ(N(it.qty))}" onfocus="this.select()"/>
+      <input class="${priceClass}" data-field="price" data-id="${it.id}" placeholder="P.Unit." value="${fmtP(N(it.price))}" onfocus="this.select()"/>
+      <span class="span-tot ${it.isApu||it.isCub?'magenta':''}">${sym()} ${fmtB(tot)}</span>
       <span class="span-acts no-print">
         <button class="bs cub${hc?' done':''}" onclick="openTof('${it.id}')">${hc?'✓Cub':'Cub'}</button>
         <button class="bs apu${ha?' done':''}" onclick="openApu('${it.id}')">${ha?'✓APU':'APU'}</button>
         <button class="bs del" onclick="di('${it.id}')">×</button>
       </span></div>`;
   }).join('');
-  rc();refreshApuTab();
+  rc();refreshApuTab();refreshCubTab();
 }
 
 function uUnit(id,v){items=items.map(x=>x.id===id?Object.assign(x,{unit:v}):x);markUnsaved();}
@@ -430,35 +458,36 @@ function initEvents(){
 function addItToChapter(chId){
   var ci=items.findIndex(x=>x.id===chId);
   var last=ci;for(var i=ci+1;i<items.length;i++){if(items[i].t==='ch')break;last=i;}
-  items.splice(last+1,0,{id:gid(),t:'it',num:'',name:'',unit:'un',qty:1,price:0});
+  items.splice(last+1,0,{id:gid(),t:'it',num:'',name:'',unit:'un',qty:1,price:0,isApu:false,isCub:false});
   rb();markUnsaved();
 }
 function addCh(){
-  items.push({id:gid(),t:'ch',num:'',name:'',unit:'',qty:0,price:0});
+  items.push({id:gid(),t:'ch',num:'',name:'',unit:'',qty:0,price:0,isApu:false,isCub:false});
   rb();markUnsaved();
 }
 function addIt(){
   var lastCh=null;for(var i=items.length-1;i>=0;i--){if(items[i].t==='ch'){lastCh=items[i];break;}}
   if(lastCh) addItToChapter(lastCh.id);
-  else {let cid=gid();items.push({id:cid,t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0});addItToChapter(cid);}
+  else {let cid=gid();items.push({id:cid,t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0,isApu:false,isCub:false});addItToChapter(cid);}
 }
 function di(id){if(confirm('¿Eliminar fila?')){items=items.filter(it=>it.id!==id);rb();markUnsaved();}}
 
 function rc(){
   var dc=items.reduce((a,it)=>it.t==='it'?a+N(it.qty)*N(it.price):a,0);
   var ggF=document.getElementById('ggFijo').checked;
-  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pIVA=N(document.getElementById('pIVA').value);
+  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
   var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
-  var util=dc*(pU/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva,s=sym();
+  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
   document.getElementById('totals').innerHTML=
-    `<div class="tr2"><span class="tl">Costo Directo</span><span class="tv">${s} ${fmtB(dc)}</span></div>
-    <div class="tr2"><span class="tl">Gastos Generales${ggF?' ('+pGG+'%)':''}</span><span class="tv">${s} ${fmtB(ggV)}</span></div>
-    <div class="tr2"><span class="tl">Utilidad (${pU}%)</span><span class="tv">${s} ${fmtB(util)}</span></div>
-    <div class="tr2 sep"><span class="tl" style="font-weight:500">Total Neto</span><span class="tv" style="font-weight:500">${s} ${fmtB(net)}</span></div>
-    <div class="tr2"><span class="tl">IVA (${pIVA}%)</span><span class="tv">${s} ${fmtB(iva)}</span></div>
-    <div class="tr2 grand"><span class="tl">Total General</span><span class="tv">${s} ${fmtB(grand)}</span></div>
+    `<div class="tr2"><span class="tl">Costo Directo</span><span class="tv">${sym()} ${fmtB(dc)}</span></div>
+    <div class="tr2"><span class="tl">Gastos Generales${ggF?' ('+pGG+'%)':''}</span><span class="tv">${sym()} ${fmtB(ggV)}</span></div>
+    <div class="tr2"><span class="tl">Utilidad (${pU}%)</span><span class="tv">${sym()} ${fmtB(util)}</span></div>
+    ${pImp>0?`<div class="tr2"><span class="tl">Imprevistos (${pImp}%)</span><span class="tv">${sym()} ${fmtB(imp)}</span></div>`:''}
+    <div class="tr2 sep"><span class="tl" style="font-weight:500">Total Neto</span><span class="tv" style="font-weight:500">${sym()} ${fmtB(net)}</span></div>
+    <div class="tr2"><span class="tl">IVA (${pIVA}%)</span><span class="tv">${sym()} ${fmtB(iva)}</span></div>
+    <div class="tr2 grand"><span class="tl">Total General</span><span class="tv">${sym()} ${fmtB(grand)}</span></div>
     <div class="words-row">${numToWords(grand)}</div>`;
-  document.getElementById('gg-total-label').textContent = `Total Gastos Generales: ${s} ${fmtB(ggV)}`;
+  document.getElementById('gg-total-label').textContent = `Total Gastos Generales: ${sym()} ${fmtB(ggV)}`;
 }
 
 /* ── GG ── */
@@ -537,7 +566,9 @@ function renderApuEdit(id){
   let totalApu = a.secs.reduce((x,s)=>x+s.rows.reduce((y,r)=>y+N(r.qty)*N(r.price),0),0) + lt;
   html+=`<div style="margin-top:15px;text-align:right;font-size:16px;font-weight:700;color:var(--navy)" id="apu-total-${id}">Precio Unitario Total: ${sym()} ${fmtP(totalApu)}</div>`;
   document.getElementById('apu-edit-body').innerHTML=html;
-  items.find(x=>x.id===id).price = totalApu; rb();
+  items.find(x=>x.id===id).price = totalApu;
+  items.find(x=>x.id===id).isApu = true;
+  rb();
 }
 function aapu(id,si){apuData[id].secs[si].rows.push({desc:'',unit:'',qty:1,price:0});renderApuEdit(id);markUnsaved();}
 function uapu(id,si,ri,f,v){
@@ -597,7 +628,9 @@ function renderTof(id){
   html+=`<button class="bs addp" style="margin:10px" onclick="atof('${id}')">+ Agregar Fila</button>
     <div style="text-align:right;padding:10px;font-size:15px;font-weight:600;color:var(--navy)" id="tof-total-${id}">Total Cubicidad: ${fmtQ(total)} ${esc(it.unit)}</div>`;
   document.getElementById('tof-body').innerHTML=html;
-  it.qty = total; rb();
+  it.qty = total;
+  it.isCub = true;
+  rb();
 }
 function atof(id){tofData[id].push({desc:'',n:1,a:1,l:1});renderTof(id);markUnsaved();}
 function utof(id,ri,f,v){
@@ -624,9 +657,9 @@ function doPrint(){
   var s=sym(), color=CFG.colorHeader, ct=ctotals();
   var dc=items.reduce((a,it)=>it.t==='it'?a+N(it.qty)*N(it.price):a,0);
   var ggF=document.getElementById('ggFijo').checked;
-  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pIVA=N(document.getElementById('pIVA').value);
+  var pGG=N(document.getElementById('pGG').value),pU=N(document.getElementById('pUtil').value),pImp=N(document.getElementById('pImp').value),pIVA=N(document.getElementById('pIVA').value);
   var ggV=ggF?dc*(pGG/100):ggItems.reduce((a,it)=>a+N(it.qty)*N(it.price),0);
-  var util=dc*(pU/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
+  var util=dc*(pU/100),imp=dc*(pImp/100),net=dc+ggV+util,iva=net*(pIVA/100),grand=net+iva;
 
   var runHdr='<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid '+color+';padding-bottom:8px;margin-bottom:14px">' +
     '<div style="display:flex;align-items:center;gap:10px">' + (CFG.logoDataUrl?'<img src="'+CFG.logoDataUrl+'" style="max-height:40px;max-width:90px;object-fit:contain"/>':'') +
@@ -682,7 +715,7 @@ function doPrint(){
     '<div style="text-align:center;width:200px;border-top:1px solid #333;padding-top:10px"><div style="font-size:10px;font-weight:700">PROFESIONAL A CARGO</div><div style="font-size:9px">'+esc(CFG.profName||profesional)+'</div></div>' +
     '</div>';
 
-  var footer='<div class="footer-wrap" style="text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">' +
+  var footer='<div style="text-align:center;font-size:10px;color:#64748b;border-top:1px solid #eee;padding-top:5px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;padding:0 10mm">' +
       '<div style="flex:1;text-align:left">'+esc(CFG.companyAddress)+' | '+esc(CFG.companyPhone)+' | '+esc(CFG.companyEmail)+'</div>' +
       '<div style="font-weight:600">Pág. <span class="pageNumber"></span></div>' +
@@ -698,7 +731,6 @@ function doPrint(){
     '.avoid-break{page-break-inside:avoid}' +
     '@media print{' +
       '@page{size:landscape;margin:10mm 10mm 25mm 10mm}' +
-      '.footer-wrap{position:fixed;bottom:0;width:100%;height:20mm;background:white}' +
     '}' +
     'body { counter-reset: page; }' +
     '.pageNumber:after { counter-increment: page; content: counter(page); }' +
@@ -717,8 +749,9 @@ function doPrint(){
       '<table><thead><tr style="background:#f9f9f9"><th>Ítem</th><th>Descripción</th><th style="text-align:center">Unid</th><th style="text-align:right">Cant.</th><th style="text-align:right">P.Unit.</th><th style="text-align:right">Total</th></tr></thead><tbody>'+trows+'</tbody></table>' +
       '<div style="width:250px;margin-left:auto;margin-top:20px;font-size:11px">' +
         '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Costo Directo</span><span>'+s+' '+fmtB(dc)+'</span></div>' +
-        '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>' +
+        (CFG.printGG?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Gastos Generales</span><span>'+s+' '+fmtB(ggV)+'</span></div>':'') +
         '<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Utilidad</span><span>'+s+' '+fmtB(util)+'</span></div>' +
+        (pImp>0?'<div style="display:flex;justify-content:space-between;padding:3px 0"><span>Imprevistos</span><span>'+s+' '+fmtB(imp)+'</span></div>':'') +
         '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid #333;font-weight:700;font-size:13px;color:'+color+'"><span>TOTAL GENERAL</span><span>'+s+' '+fmtB(grand)+'</span></div>' +
       '</div>' +
       '<p style="font-size:9px;font-style:italic;text-align:right;margin-top:5px">'+numToWords(grand)+'</p>' +
@@ -730,11 +763,95 @@ function doPrint(){
   setTimeout(()=>win.print(),500);
 }
 
+/* ── PREVIEW ── */
+function previewReport(){
+  document.getElementById('ov').style.display='block';
+  document.getElementById('mc').innerHTML=`<div class="modal" style="max-width:900px;max-height:90vh">
+    <div class="mh"><h3>Vista Previa del Informe</h3><button class="btn-s" onclick="closeMod()">Cerrar</button></div>
+    <div class="mb" style="height:600px;overflow:auto" id="preview-body"></div>
+  </div>`;
+  let obra=document.getElementById('pObra').value||'Sin nombre';
+  document.getElementById('preview-body').innerHTML=`<iframe class="preview-frame" src="about:blank"></iframe>`;
+  setTimeout(()=>{
+    let frame=document.querySelector('.preview-frame');
+    let doc=frame.contentDocument||frame.contentWindow.document;
+    doc.write('<html><head><style>body{font-family:Arial,sans-serif;margin:20px;color:#333}h1{color:#1e3a5f}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:8px}th{background:#f5f5f5}</style></head><body>');
+    doc.write('<h1>'+esc(obra)+'</h1>');
+    doc.write('<p><strong>Mandante:</strong> '+esc(document.getElementById('pMandante').value)+'</p>');
+    doc.write('<p><strong>Ubicación:</strong> '+esc(document.getElementById('pUbicacion').value)+'</p>');
+    doc.write('<p><strong>Fecha:</strong> '+esc(document.getElementById('pFecha').value)+'</p>');
+    doc.write('<h2>Presupuesto Detallado</h2>');
+    doc.write('<table><tr><th>Ítem</th><th>Descripción</th><th>Unid</th><th>Cant.</th><th>P.Unit.</th><th>Total</th></tr>');
+    items.forEach(it=>{
+      if(it.t==='ch') doc.write('<tr style="background:#e8eef7"><td colspan="6"><strong>'+esc(it.num)+' '+esc(it.name)+'</strong></td></tr>');
+      else doc.write('<tr><td>'+esc(it.num)+'</td><td>'+esc(it.name)+'</td><td>'+esc(it.unit)+'</td><td>'+fmtQ(N(it.qty))+'</td><td>'+sym()+' '+fmtP(N(it.price))+'</td><td>'+sym()+' '+fmtB(N(it.qty)*N(it.price))+'</td></tr>');
+    });
+    doc.write('</table></body></html>');
+    doc.close();
+  },100);
+}
+
+/* ── HELP ── */
+function openHelp(){
+  document.getElementById('ov').style.display='block';
+  document.getElementById('mc').innerHTML=`<div class="modal" style="max-width:700px">
+    <div class="mh"><h3>❔ Ayuda PresAI</h3><button class="btn-s" onclick="closeMod()">Cerrar</button></div>
+    <div class="mb help-content" id="help-body"></div>
+  </div>`;
+  document.getElementById('help-body').innerHTML=`
+    <div class="help-section">
+      <h5>📋 Pestaña Presupuesto</h5>
+      <p>Aquí ingresas los datos principales de tu obra y las partidas de construcción. Cada partida tiene:</p>
+      <ul>
+        <li><strong>Descripción:</strong> Nombre de la partida</li>
+        <li><strong>Unid:</strong> Unidad de medida (m, m2, m3, kg, etc.)</li>
+        <li><strong>Cant.:</strong> Cantidad. Si ingresa desde Cubicaciones, aparecerá en <span style="color:var(--magenta);font-weight:bold">magenta</span></li>
+        <li><strong>P.Unit.:</strong> Precio unitario. Si ingresa desde APU, aparecerá en <span style="color:var(--magenta);font-weight:bold">magenta</span></li>
+      </ul>
+    </div>
+    <div class="help-section">
+      <h5>💰 Gastos Generales</h5>
+      <p>Detalla los gastos generales del proyecto. Puedes usar un % fijo o detallar cada gasto. Si seleccionas "Usar % fijo", se calcula automáticamente.</p>
+    </div>
+    <div class="help-section">
+      <h5>📊 Análisis Unitarios (APU)</h5>
+      <p>Desglosa el costo de cada partida en Mano de Obra, Materiales, Equipos y Subcontratos. Incluye Leyes Sociales automáticamente. Al guardar, el precio se refleja en magenta en el presupuesto.</p>
+      <p><strong>Pérdidas:</strong> Si escribes "pérdida" o "pérdidas" en el concepto, se calcula automáticamente como % del recurso anterior.</p>
+    </div>
+    <div class="help-section">
+      <h5>📐 Cubicaciones</h5>
+      <p>Define la cantidad de cada partida mediante mediciones: Cantidad × Ancho × Largo. Útil para obras con geometría clara. Al guardar, la cantidad aparecerá en magenta en el presupuesto.</p>
+    </div>
+    <div class="help-section">
+      <h5>⚙️ Configuración</h5>
+      <p><strong>Moneda:</strong> Elige CLP, USD o UF. Si es USD o UF, ingresa la paridad.</p>
+      <p><strong>Empresa:</strong> Datos que aparecerán en el informe.</p>
+      <p><strong>Impresión:</strong> Elige qué secciones incluir en el PDF.</p>
+      <p><strong>Guardado Automático:</strong> Guarda tu proyecto cada X segundos.</p>
+      <p><strong>Prorrateo:</strong> Distribuye GG y Utilidad en los APU (no aparecen al final).</p>
+      <p><strong>Imprevistos:</strong> Agrega un % separado o visible en el informe.</p>
+    </div>
+    <div class="help-section">
+      <h5>🖨️ Impresión</h5>
+      <p>Genera un PDF profesional con Portada, Presupuesto, APU y Cubicaciones. Usa "Vista Previa" para revisar antes de imprimir.</p>
+    </div>
+    <div class="help-section">
+      <h5>💡 Consejos</h5>
+      <ul>
+        <li>Usa APU para proyectos complejos con muchos recursos</li>
+        <li>Usa Cubicaciones para obras con mediciones claras</li>
+        <li>Guarda regularmente tus proyectos en "Mis Proyectos"</li>
+        <li>Revisa la Vista Previa antes de imprimir</li>
+      </ul>
+    </div>
+  `;
+}
+
 /* ── SETTINGS ── */
 function openSettings(){
   document.getElementById('ov').style.display='block';
-  let html = '<div class="modal" style="max-width:600px">' +
-    '<div class="mh"><h3>Configuración PresAI</h3><button class="btn-s" onclick="closeMod()">✕</button></div>' +
+  let html = '<div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto">' +
+    '<div class="mh"><h3>⚙️ Configuración PresAI</h3><button class="btn-s" onclick="closeMod()">✕</button></div>' +
     '<div class="mb">' +
       '<div class="cfg-section"><h4>Moneda y Decimales</h4><div class="cfg-grid">' +
         '<div class="cfg-field"><label>Moneda</label><select onchange="CFG.currency=this.value;saveCFG();rb();rc();openSettings();">' +
@@ -771,7 +888,13 @@ function openSettings(){
         '<label class="chk-opt"><input type="checkbox" '+(CFG.printCover?'checked':'')+' onchange="CFG.printCover=this.checked;saveCFG()"> Portada</label>' +
         '<label class="chk-opt"><input type="checkbox" '+(CFG.printApu?'checked':'')+' onchange="CFG.printApu=this.checked;saveCFG()"> APUs</label>' +
         '<label class="chk-opt"><input type="checkbox" '+(CFG.printCub?'checked':'')+' onchange="CFG.printCub=this.checked;saveCFG()"> Cubicaciones</label>' +
-      '</div></div>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.printGG?'checked':'')+' onchange="CFG.printGG=this.checked;saveCFG()"> Gastos Generales en Informe</label>' +
+      '</div>' +
+        '<div class="cfg-grid" style="margin-top:10px">' +
+          '<label class="chk-opt"><input type="checkbox" '+(CFG.apuPerPage?'checked':'')+' onchange="CFG.apuPerPage=this.checked;saveCFG()"> APU por hoja (si no, seguidos)</label>' +
+          '<label class="chk-opt"><input type="checkbox" '+(CFG.cubPerPage?'checked':'')+' onchange="CFG.cubPerPage=this.checked;saveCFG()"> Cubicaciones por hoja</label>' +
+        '</div>' +
+      '</div>' +
       '<div class="cfg-section"><h4>Imagen Portada</h4>' +
         '<div style="display:flex;gap:15px;align-items:center">' +
           '<button class="bs" onclick="document.getElementById(\'covInp\').click()">Subir Imagen Portada</button>' +
@@ -779,6 +902,18 @@ function openSettings(){
         '</div>' +
         '<input type="file" id="covInp" style="display:none" onchange="hCov(this)"/>' +
       '</div>' +
+      '<div class="cfg-section"><h4>Guardado Automático</h4><div class="cfg-grid">' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.autoSave?'checked':'')+' onchange="CFG.autoSave=this.checked;saveCFG();setupAutoSave()"> Activar Guardado Automático</label>' +
+        '<div class="cfg-field"><label>Intervalo (segundos)</label><input type="number" value="'+CFG.autoSaveInterval+'" oninput="CFG.autoSaveInterval=N(this.value);saveCFG();setupAutoSave()" onfocus="this.select()"/></div>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Prorrateo</h4><div class="chk-opts">' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.ggProrrateado?'checked':'')+' onchange="CFG.ggProrrateado=this.checked;saveCFG()"> Prorratear Gastos Generales en APU</label>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.utilProrrateado?'checked':'')+' onchange="CFG.utilProrrateado=this.checked;saveCFG()"> Prorratear Utilidad en APU</label>' +
+      '</div></div>' +
+      '<div class="cfg-section"><h4>Imprevistos</h4><div class="chk-opts">' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.impPorApu?'checked':'')+' onchange="CFG.impPorApu=this.checked;saveCFG()"> Imprevistos por APU (separado)</label>' +
+        '<label class="chk-opt"><input type="checkbox" '+(CFG.impVisible?'checked':'')+' onchange="CFG.impVisible=this.checked;saveCFG()"> Imprevistos Visible en Informe</label>' +
+      '</div></div>' +
     '</div>' +
     '<div class="mf"><button class="btn-p blue" onclick="closeMod()">Listo</button></div>' +
   '</div>';
@@ -791,7 +926,7 @@ function hCov(i){let r=new FileReader();r.onload=e=>{CFG.coverImgUrl=e.target.re
 function newProject(){
   if(isDirty && !confirm('¿Descartar cambios?')) return;
   currentProjectId=null; isDirty=false;
-  items=[{id:gid(),t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0},{id:gid(),t:'it',num:'1.1',name:'',unit:'',qty:0,price:0}];
+  items=[{id:gid(),t:'ch',num:'1.-',name:'',unit:'',qty:0,price:0,isApu:false,isCub:false},{id:gid(),t:'it',num:'1.1',name:'',unit:'',qty:0,price:0,isApu:false,isCub:false}];
   ggItems=[]; apuData={}; tofData={};
   CFG.coverImgUrl = ''; 
   ['pObra','pMandante','pUbicacion','pProfesional'].forEach(id=>document.getElementById(id).value='');
@@ -801,7 +936,7 @@ function newProject(){
 function saveProject(){
   let obra=document.getElementById('pObra').value.trim(); if(!obra){alert('Nombre de obra requerido');return;}
   if(!currentProjectId) currentProjectId='proj_'+Date.now();
-  let p={id:currentProjectId,obra,mandante:document.getElementById('pMandante').value,ubicacion:document.getElementById('pUbicacion').value,profesional:document.getElementById('pProfesional').value,fecha:document.getElementById('pFecha').value,items,ggItems,apuData,tofData,pGG:document.getElementById('pGG').value,pUtil:document.getElementById('pUtil').value,pIVA:document.getElementById('pIVA').value,ggFijo:document.getElementById('ggFijo').checked,coverImgUrl:CFG.coverImgUrl};
+  let p={id:currentProjectId,obra,mandante:document.getElementById('pMandante').value,ubicacion:document.getElementById('pUbicacion').value,profesional:document.getElementById('pProfesional').value,fecha:document.getElementById('pFecha').value,items,ggItems,apuData,tofData,pGG:document.getElementById('pGG').value,pUtil:document.getElementById('pUtil').value,pImp:document.getElementById('pImp').value,pIVA:document.getElementById('pIVA').value,ggFijo:document.getElementById('ggFijo').checked,coverImgUrl:CFG.coverImgUrl};
   lsS('od_proj_'+currentProjectId,p);
   let idx=getIdx(),e=idx.find(x=>x.id===currentProjectId);
   if(e){e.obra=obra;e.savedAt=new Date().toISOString();}else idx.unshift({id:currentProjectId,obra,savedAt:new Date().toISOString()});
@@ -834,7 +969,8 @@ function loadP(id){
   document.getElementById('pObra').value=p.obra; document.getElementById('pMandante').value=p.mandante;
   document.getElementById('pUbicacion').value=p.ubicacion; document.getElementById('pProfesional').value=p.profesional;
   document.getElementById('pFecha').value=p.fecha; document.getElementById('pGG').value=p.pGG;
-  document.getElementById('pUtil').value=p.pUtil; document.getElementById('pIVA').value=p.pIVA;
+  document.getElementById('pUtil').value=p.pUtil; document.getElementById('pImp').value=p.pImp;
+  document.getElementById('pIVA').value=p.pIVA;
   document.getElementById('ggFijo').checked=p.ggFijo;
   rb(); renderGG(); closeMod(); syncHdr();
 }
@@ -846,9 +982,11 @@ function sw(id,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
   document.getElementById('p-'+id).classList.add('on'); el.classList.add('on');
   if(id==='apu') refreshApuTab();
+  if(id==='cub') refreshCubTab();
 }
 function syncHdr(){document.getElementById('hdrProj').style.display='flex';document.getElementById('hdrProjName').textContent=document.getElementById('pObra').value||'Proyecto';}
 function markUnsaved(){isDirty=true;}
+
 function refreshApuTab(){
   let grid=document.getElementById('apu-list-grid'),empty=document.getElementById('apu-list-empty');
   let apus=items.filter(it=>it.t==='it'&&apuData[it.id]);
@@ -859,6 +997,31 @@ function refreshApuTab(){
       <div style="font-weight:600;color:var(--navy)">${it.num} ${esc(it.name)}</div>
       <div style="text-align:right;font-family:var(--mono)">${sym()} ${fmtP(it.price)}</div>
     </div>`).join('');
+  }
+}
+
+function refreshCubTab(){
+  let grid=document.getElementById('cub-list-grid'),empty=document.getElementById('cub-list-empty');
+  let cubs=items.filter(it=>it.t==='it'&&tofData[it.id]&&tofData[it.id].length);
+  if(!cubs.length){grid.style.display='none';empty.style.display='block';}
+  else{
+    grid.style.display='grid';empty.style.display='none';
+    grid.innerHTML=cubs.map(it=>{
+      let total=tofData[it.id].reduce((x,r)=>x+(N(r.n)*Math.max(1,N(r.a))*Math.max(1,N(r.l))),0);
+      return `<div class="tot-card" style="cursor:pointer" onclick="openTof('${it.id}')">
+        <div style="font-weight:600;color:var(--magenta)">${it.num} ${esc(it.name)}</div>
+        <div style="text-align:right;font-family:var(--mono)">${fmtQ(total)} ${esc(it.unit)}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function setupAutoSave(){
+  if(autoSaveInterval) clearInterval(autoSaveInterval);
+  if(CFG.autoSave && currentProjectId){
+    autoSaveInterval=setInterval(()=>{
+      if(isDirty) saveProject();
+    },CFG.autoSaveInterval*1000);
   }
 }
 
